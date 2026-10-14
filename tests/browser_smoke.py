@@ -41,7 +41,7 @@ async def test():
         await ben.screenshot(path=str(OUT/'lobby-mobile.png'),full_page=True)
         await host.get_by_role('button',name='Start the game').click()
         for page in pages:
-            await page.get_by_text('Ready, set… don't spill.').wait_for(timeout=5000)
+            await page.get_by_text("Ready, set… don\'t spill.").wait_for(timeout=5000)
             await page.get_by_role('button',name='Next step →').click()
             await page.get_by_role('button',name='Next step →').click()
             await page.get_by_role('button',name='I’m ready — let’s play!').click()
