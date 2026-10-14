@@ -33,13 +33,32 @@ test('active pourer sees overhead glass; rival sees side; roles reverse next tur
  assert.match(firstWatching,/data-camera="side"/);
 });
 
-test('live water level uses proper side and overhead geometry',()=>{
+test('side camera has continuously updated water height; overhead shows synced photographic frames',()=>{
  const src=section('function updateVitals(){','let audioCtx=null;');
- for(const [camera,expected] of [['side','40%'],['overhead','30%']]){
+ const helpers=section('function spriteFrameFor(','function home(){');
+ for(const camera of ['side','overhead']){
   const water={style:{setProperty(){}}};
-  const stage={dataset:{camera},style:{setProperty(){}},classList:{toggle(){}},querySelector:selector=>selector==='[data-water]'?water:null};
+  const sprite={style:{backgroundPosition:''}};
+  const stage={dataset:{camera,spriteFrame:'0'},style:{setProperty(){}},classList:{toggle(){}},querySelector:selector=>selector==='[data-water]'?(camera==='side'?water:null):selector==='[data-pour-sprite]'?sprite:null};
   const context={state:{room:{phase:'pour',level:40,turn:{pourerId:'other',foam:false,flowing:false,started:false,dripping:false,elapsedMs:0}},held:false},document:{querySelectorAll:()=>[]},$:selector=>selector==='[data-cup-stage]'?stage:null,relativeTimer:()=>0,seconds:()=>'',performance:{now:()=>0},sound:()=>{},Math};
-  vm.createContext(context);vm.runInContext(src+'\nupdateVitals()',context);
-  assert.equal(water.style.height,expected,`${camera} water level must match viewpoint geometry`);
+  vm.createContext(context);vm.runInContext(helpers+'\n'+src+'\nupdateVitals()',context);
+  if(camera==='side')assert.equal(water.style.height,'40%');
+  else {assert.equal(stage.dataset.spriteFrame,'2');assert.equal(sprite.style.backgroundPosition,'66.66666666666667% 0%');}
  }
+});
+
+test('photo frames advance with water, and no numerical cup markers reveal its level',()=>{
+ const helper=section('function spriteFrameFor(','function home(){');
+ const context={Math};vm.createContext(context);vm.runInContext(helper+'\nthis.pick=spriteFrameFor;this.pos=spritePosition;',context);
+ assert.equal(context.pick(0,false),0);
+ assert.equal(context.pick(48,false),3);
+ assert.equal(context.pick(100,false),6);
+ assert.equal(context.pick(48,true,10),3);
+ assert.equal(context.pick(48,true,400),4);
+ assert.equal(context.pos(6),'66.66666666666667% 100%');
+ const pour=screenFor('player1');
+ assert.match(pour,/data-pour-sprite/);
+ assert.doesNotMatch(pour,/center-readout|class="measure|class="glass-scale|Added 3 \/ 6/);
+ const spectator=screenFor('player2');
+ assert.doesNotMatch(spectator,/class="glass-scale|75<\/span>|50<\/span>|25<\/span>/);
 });

@@ -9,7 +9,7 @@ const PUBLIC=path.join(ROOT,'public');
 const PORT=Number(process.env.PORT||3000);
 const game=new GameEngine({scale:Number(process.env.GAME_TIME_SCALE||1)});
 const listeners=new Map(); // code -> Set({response,id})
-const MIME={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon','.json':'application/json'};
+const MIME={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.ico':'image/x-icon','.json':'application/json'};
 const headers={'X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY','Cross-Origin-Resource-Policy':'same-origin','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'"};
 function json(res,status,body){if(res.writableEnded)return;res.writeHead(status,{...headers,'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(body));}
 function streamMessage(res,body){if(!res.destroyed&&!res.writableEnded)res.write(`event: state\ndata: ${JSON.stringify(body)}\n\n`);}

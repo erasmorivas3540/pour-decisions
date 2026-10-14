@@ -238,3 +238,34 @@
 @keyframes waterFlowGif{from{transform:rotate(34deg) scaleX(1) scaleY(1)}to{transform:rotate(32deg) scaleX(.96) scaleY(1.04)}}
 @media(max-width:830px){.photo-overhead .glass-shell{width:min(84%,360px);height:232px}.photo-overhead .bottle{right:6px;top:6px;transform:rotate(20deg) scale(.94)}.photo-overhead .stream{left:calc(50% + 64px);top:79px;width:22px;height:142px}.photo-overhead .glass-shadow{width:270px;height:100px}}
 @media(max-width:540px){.photo-overhead .cup-scene{height:286px}.photo-overhead .glass-shell{width:min(88%,292px);height:188px}.photo-overhead .top-glass{inset:15px 22px 15px 22px}.photo-overhead .glass-spout{left:6px;top:69px;width:32px;height:44px}.photo-overhead .glass-handle{right:-5px;top:70px;width:42px;height:56px;border-width:8px;border-left-width:6px}.photo-overhead .glass-shadow{width:228px;height:86px;bottom:48px}.photo-overhead .bottle{right:-8px;top:0;transform:rotate(20deg) scale(.72)}.photo-overhead.pouring .bottle{transform:rotate(23deg) translate(-3px,3px) scale(.73)}.photo-overhead .stream{left:calc(50% + 51px);top:61px;width:16px;height:112px;transform:rotate(34deg)}.photo-overhead.distance .bottle{right:-1px;top:-10px;transform:rotate(18deg) scale(.65)}.photo-overhead.distance.pouring .bottle{transform:rotate(24deg) translate(-3px,2px) scale(.67)}.photo-overhead.distance .stream{left:calc(50% + 39px);top:54px;transform:rotate(34deg) scale(.85)}}
+
+/* Sprite-sheet implementation: artwork supplied by the player, 4 columns × 2 rows. */
+.sprite-photoreal{background:#eae7e1;border:3px solid #243755}
+.sprite-photoreal .cup-scene{height:380px;position:relative;display:grid;place-items:center;padding:0;overflow:hidden;isolation:isolate}
+.sprite-photoreal .sprite-marble{position:absolute;inset:0;background:linear-gradient(135deg,#f0efed,#e5e1dc 55%,#f7f5f1),repeating-linear-gradient(115deg,transparent 0 38px,#949c9b09 39px 42px,transparent 45px 94px);z-index:0}
+.sprite-photoreal .sprite-marble::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 23% 20%,#fff9,transparent 42%),linear-gradient(127deg,transparent 0 34%,#a8a39e16 34.5% 35%,transparent 35.5% 76%,#aba7a11a 77% 77.5%,transparent 78%)}
+.sprite-photoreal .sprite-animation{z-index:2;width:min(100%,430px);aspect-ratio:1;background-image:url('/assets/overhead-water-settled.webp');background-size:400% 200%;background-repeat:no-repeat;position:relative;transition:transform .25s ease,filter .16s linear;filter:drop-shadow(0 8px 13px #35434c29);will-change:background-position}
+.sprite-photoreal.pouring .sprite-animation{background-image:url('/assets/overhead-water-sprites.webp')}
+.sprite-photoreal .sprite-ripple{position:absolute;left:44%;top:51%;border:2px solid #f9feff9a;border-radius:50%;height:26px;width:26px;opacity:0;pointer-events:none}
+.sprite-photoreal.pouring .sprite-ripple{animation:sprite-pour-ripple 1.05s linear infinite;opacity:.8}
+.sprite-photoreal .sprite-bubble{position:absolute;width:8px;height:8px;border:1px solid #fff9;border-radius:50%;background:#ecfdff48;opacity:0;pointer-events:none}
+.sprite-photoreal .sprite-bubble.bubble-1{left:41%;top:53%}.sprite-photoreal .sprite-bubble.bubble-2{left:55%;top:48%}.sprite-photoreal .sprite-bubble.bubble-3{left:49%;top:62%}
+.sprite-photoreal.pouring .sprite-bubble{opacity:.75;animation:sprite-bubble-rise 1.7s ease-in infinite alternate}
+.sprite-photoreal.pouring .sprite-bubble.bubble-2{animation-delay:-.45s}.sprite-photoreal.pouring .sprite-bubble.bubble-3{animation-delay:-.9s}
+.sprite-photoreal.blurry .sprite-animation{filter:blur(3.5px)}
+.sprite-photoreal.tunnel .sprite-animation{clip-path:inset(0 36% 0 36% round 10px)}
+.sprite-photoreal.lights-dark .cup-scene{filter:brightness(.27)}
+.sprite-photoreal.shaky .sprite-animation{animation:cupWobble .17s ease-in-out infinite alternate}
+.sprite-photoreal.distance .sprite-animation{transform:scale(.64)}
+.sprite-photoreal.foamy .sprite-animation{filter:brightness(1.08)}
+.sprite-photoreal .stage-bottom{position:relative;background:linear-gradient(180deg,#f9f1e7,#f1e3d4);color:#565f75;border-top:2px solid #c8b3a0;font-size:.78rem;font-weight:950;letter-spacing:.06em;padding:12px 16px;text-align:center;display:flex;justify-content:center;gap:10px}
+@keyframes sprite-pour-ripple{0%{transform:scale(.3);opacity:.84}100%{transform:scale(3.2);opacity:0}}
+@keyframes sprite-bubble-rise{0%{transform:translate(0,13px) scale(.65);opacity:.12}100%{transform:translate(-6px,-23px) scale(1.1);opacity:.9}}
+@media(max-width:830px){.sprite-photoreal .cup-scene{height:340px}.sprite-photoreal .sprite-animation{width:min(100%,360px)}}
+@media(max-width:540px){.sprite-photoreal .cup-scene{height:286px}.sprite-photoreal .sprite-animation{width:min(100%,295px)}.sprite-photoreal .stage-bottom{font-size:.69rem;padding:11px 8px}}
+.reduce-motion .sprite-photoreal .sprite-ripple,.reduce-motion .sprite-photoreal .sprite-bubble{animation:none!important}
+/* A definite frame width is required: intrinsic CSS-grid sizing made the sprite collapse. */
+.sprite-photoreal .cup-scene{display:flex;align-items:center;justify-content:center}
+.sprite-photoreal .sprite-animation{width:430px;max-width:calc(100% - 8px);flex-shrink:0}
+@media(max-width:830px){.sprite-photoreal .sprite-animation{width:360px}}
+@media(max-width:540px){.sprite-photoreal .sprite-animation{width:295px}}

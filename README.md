@@ -117,3 +117,7 @@ The hosted page should be checked on a real iPhone, Android, and laptop before f
 - Keep the service up for the game and avoid very aggressive platform idle timeouts. If the service requires an SSE idle/response timeout, configure it above a few minutes; streaming emits state at least four times per second.
 - This is an age-neutral cartoon game using water, not actual drinking.
 - The production service is already deployed to Render under the owner’s account. A Render restart or free-plan spin-down can reset in-progress rooms.
+
+## Photographic pour sprites (October 2026)
+
+The active pourer uses an overhead sprite-sheet animation derived from the user-provided measuring-cup artwork. The app selects neighboring frames from the authoritative server water level, animates ripples and bubbles while water flows, and uses a settled-water atlas when pouring stops. The other players continue to see the side camera. Exact fill totals and tick-mark labels are hidden during pouring; players must estimate the remaining capacity from what they observed previously. The two optimized WebP atlases in `public/assets/` are needed for the game. These are supplied project artwork, not an Envato video asset.
