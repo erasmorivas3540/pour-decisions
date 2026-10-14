@@ -148,3 +148,41 @@
 .results-cup .photo-overhead .cup-scene{height:310px}.results-cup .photo-overhead .top-glass{width:min(72%,320px);height:196px}
 @media(max-width:830px){.photo-overhead .bottle{right:calc(50% - 218px)}.photo-overhead .measure{right:calc(50% - 205px)}}
 @media(max-width:540px){.photo-overhead .cup-scene{height:292px}.photo-overhead .top-glass{width:min(78%,286px);height:178px}.photo-overhead .glass-shadow{width:270px;height:76px;bottom:37px}.photo-overhead .bottle{top:7px;right:calc(50% - 176px);transform:rotate(-29deg) scale(.82)}.photo-overhead.pouring .bottle{transform:rotate(-42deg) translateY(4px) scale(.84)}.photo-overhead .stream{top:72px;left:calc(50% + 74px);height:104px;width:15px}.photo-overhead .measure{right:calc(50% - 150px);font-size:.7rem;padding:3px 7px}.photo-overhead .measure-a{top:181px}.photo-overhead .measure-b{top:150px}.photo-overhead .measure-c{top:121px}.photo-overhead .pour-target{top:67%;font-size:.66rem}.photo-overhead .counter-spark{bottom:70px;right:7%}.photo-overhead.distance .glass-area{transform:translateY(-18px) scale(.72)}.hero-art .photo-overhead .cup-scene{margin-top:0;transform:scale(.87)}}
+
+/* Envato-inspired overhead pour refinements */
+.photo-overhead .cup-scene{overflow:hidden}
+.photo-overhead .top-glass{width:min(82%,404px);height:238px;transform:perspective(1200px) rotateX(67deg);background:linear-gradient(180deg,#ffffff88,#ffffff22);box-shadow:0 28px 38px #5a6e8448,inset 0 0 0 2px #ffffff9c}
+.photo-overhead .glass-rim.outer{border:12px solid #cfdfeb;box-shadow:inset 0 0 0 2px #ffffffd4,0 0 0 2px #7b90a442}
+.photo-overhead .glass-rim.inner{inset:11px;border:2px solid #ffffffb8}
+.photo-overhead .glass-highlight{inset:15px 38px auto auto;width:118px;height:42px;opacity:.92}
+.photo-overhead .glass-reflection{left:10%;top:16%;width:70%;height:34%;border-top:2px solid #ffffffc6;opacity:.82}
+.photo-overhead .water{left:11%;right:11%;bottom:12%;height:39%;background:radial-gradient(circle at 50% 18%,#effdff 0,#c8effd 20%,#9ed4ef 40%,#74b7dd 60%,#4b92c1 82%,#2b6f9f 100%);box-shadow:inset 0 -18px 32px #15567a5f, inset 0 12px 24px #ffffff2e, 0 18px 24px #2b6f9d22}
+.photo-overhead .water::before{left:-10%;right:-10%;top:-12px;height:34px;background:radial-gradient(circle at 50% 54%,#ffffffef 0,#e9fbffcb 34%,#afdff4a8 54%,#7ab7db52 70%,transparent 71%);border-top:2px solid #eefeffcc}
+.photo-overhead .water-wave{top:-10px;height:30px;background:#effeff87;filter:blur(.3px)}
+.photo-overhead .wave-front{animation:waveTilt 1.8s ease-in-out infinite alternate}
+.photo-overhead .wave-back{animation:waveTilt 2.4s ease-in-out .6s infinite alternate-reverse}
+.photo-overhead .bubble{bottom:10%;border-color:#f7ffffd4;background:#f1ffff57;box-shadow:0 0 0 1px #ffffff6b inset,0 0 8px #ffffff22}
+.photo-overhead .bubble-1{left:18%;width:10px;height:10px;animation-duration:3.2s}
+.photo-overhead .bubble-2{left:31%;width:15px;height:15px;animation-duration:4.8s}
+.photo-overhead .bubble-3{left:53%;width:18px;height:18px;animation-duration:4.1s}
+.photo-overhead .bubble-4{left:68%;width:9px;height:9px;animation-duration:3.7s}
+.photo-overhead .glass-shadow{width:374px;height:98px;bottom:32px;background:radial-gradient(circle at 50% 50%,#64789135 0,#41526325 38%,transparent 74%)}
+.photo-overhead .measure{right:calc(50% - 238px);background:#ffffffb8;color:#5f7490;border-color:#eef4fa;backdrop-filter:blur(2px)}
+.photo-overhead .measure-a{top:224px}.photo-overhead .measure-b{top:184px}.photo-overhead .measure-c{top:145px}
+.photo-overhead .center-readout{top:53%;padding:8px 14px;background:#ffffffc9;box-shadow:0 6px 20px #40566618}
+.photo-overhead .bottle{left:calc(50% - 338px);right:auto;top:150px;transform:rotate(59deg) scale(1.18);transform-origin:18% 82%;z-index:6}
+.photo-overhead .bottle svg{width:178px;height:214px;filter:drop-shadow(0 10px 18px #23344529)}
+.photo-overhead.pouring .bottle{transform:rotate(65deg) translate(10px,-8px) scale(1.2)}
+.photo-overhead .stream{top:156px;left:calc(50% - 168px);width:28px;height:176px;background:linear-gradient(180deg,#f4ffff 0,#d7f8ff 15%,#9fdff9 44%,#74c2e6 76%,#4aa0d1 100%);box-shadow:0 0 0 1px #8fcbe680,inset 6px 0 0 #ffffffa8,inset -5px 0 0 #7ac3e15c,0 10px 12px #2c7fa130;transform:rotate(-51deg);transform-origin:center top;border-radius:22px;filter:blur(.15px)}
+.photo-overhead.pouring .stream{opacity:1;animation:waterFlowOverhead .22s infinite alternate}
+.photo-overhead .droplet{width:13px;height:20px;left:7px;top:12px;background:linear-gradient(180deg,#ffffffd9,#8ed8f6);box-shadow:1px 2px 0 #56a9d0a6}
+.photo-overhead .droplet-b{left:10px;top:64px;animation-delay:.38s;transform:scale(.72)}
+.photo-overhead .droplet-c{left:4px;top:110px;animation-delay:.14s;transform:scale(.56)}
+.photo-overhead .pour-target{top:69%;font-size:.7rem;letter-spacing:.18em;opacity:.75}
+.photo-overhead.pouring .measure,.photo-overhead.pouring .center-readout{opacity:0;transform:translate(-50%,-50%) scale(.95);pointer-events:none}
+.photo-overhead.distance .bottle{left:calc(50% - 320px);top:122px;transform:rotate(55deg) scale(1.02)}
+.photo-overhead.distance.pouring .bottle{transform:rotate(62deg) translate(10px,-7px) scale(1.04)}
+.photo-overhead.distance .stream{left:calc(50% - 148px);top:141px;transform:rotate(-49deg) scale(.91)}
+@keyframes waterFlowOverhead{from{transform:rotate(-51deg) scaleX(1) scaleY(1)}to{transform:rotate(-49deg) scaleX(.94) scaleY(1.03)}}
+@media(max-width:830px){.photo-overhead .top-glass{width:min(84%,360px);height:216px}.photo-overhead .glass-shadow{width:322px;height:86px}.photo-overhead .bottle{left:calc(50% - 292px);top:154px;transform:rotate(59deg) scale(1)}.photo-overhead.pouring .bottle{transform:rotate(65deg) translate(8px,-7px) scale(1.03)}.photo-overhead .stream{left:calc(50% - 145px);top:158px;width:24px;height:155px}.photo-overhead .measure{right:calc(50% - 214px)}.photo-overhead .measure-a{top:210px}.photo-overhead .measure-b{top:174px}.photo-overhead .measure-c{top:140px}}
+@media(max-width:540px){.photo-overhead .cup-scene{height:292px}.photo-overhead .top-glass{width:min(86%,300px);height:185px;transform:perspective(1000px) rotateX(66deg)}.photo-overhead .glass-shadow{width:274px;height:75px;bottom:34px}.photo-overhead .bottle{left:calc(50% - 215px);top:136px;transform:rotate(59deg) scale(.75)}.photo-overhead.pouring .bottle{transform:rotate(65deg) translate(7px,-5px) scale(.77)}.photo-overhead .stream{top:141px;left:calc(50% - 107px);width:18px;height:118px;transform:rotate(-51deg)}.photo-overhead .measure{right:calc(50% - 154px);font-size:.66rem;padding:3px 7px}.photo-overhead .measure-a{top:181px}.photo-overhead .measure-b{top:150px}.photo-overhead .measure-c{top:123px}.photo-overhead .center-readout{padding:6px 11px}.photo-overhead .center-readout span{font-size:1.08rem}.photo-overhead.distance .bottle{left:calc(50% - 206px);top:122px;transform:rotate(55deg) scale(.69)}.photo-overhead.distance.pouring .bottle{transform:rotate(62deg) translate(6px,-5px) scale(.71)}.photo-overhead.distance .stream{left:calc(50% - 94px);top:130px;transform:rotate(-49deg) scale(.86)}}
