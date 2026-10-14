@@ -95,8 +95,8 @@ export class GameEngine {
   checkPause(room){
     if(!multiplayerPhases.has(room.phase))return;
     const count=room.players.filter(playable).length;const now=this.clock();
-    if(count<3 && !room.pauseStarted){room.pauseStarted=now;room.pauseDeadline=now+this.ms(120000);}
-    else if(count>=3&&room.pauseStarted){
+    if(count<2 && !room.pauseStarted){room.pauseStarted=now;room.pauseDeadline=now+this.ms(120000);}
+    else if(count>=2&&room.pauseStarted){
       const delta=now-room.pauseStarted;
       room.deadline+=delta;
       if(room.turn){for(const prop of ['pourStartAt','pourEndAt','pouringSince','dripAt'])if(room.turn[prop])room.turn[prop]+=delta;
@@ -114,7 +114,7 @@ export class GameEngine {
       room.settings.spillLimit=value.spillLimit;
     }else if(type==='start'){
       if(room.phase!=='lobby'||room.hostId!==id)throw error('Only the host can start.');
-      if(room.players.filter(playable).length<3)throw error('At least 3 connected players are needed.');
+      if(room.players.filter(playable).length<2)throw error('At least 2 connected players are needed.');
       room.phase='howto';room.deadline=now+this.ms(15000);
       room.players.forEach(p=>p.ready=false);
     }else if(type==='ready'){
@@ -134,7 +134,7 @@ export class GameEngine {
       if(type==='stop')this.stopPour(room);
     }else if(type==='guess'){
       if(room.pauseStarted)throw error('Game paused while players reconnect.');
-      if(!['pour','guess'].includes(room.phase)||!room.turn)throw error('Guessing is closed.');
+      if(!['pour','guess'].includes(room.phase)||!room.turn||room.turn.headToHead)throw error('Guessing is closed in a two-player game.');
       if(id===room.turn.pourerId||id===room.turn.jinxerId)throw error('You already know the jinx!');
       if(player.spectator&&room.turn.turnNumber<=player.joinTurn)throw error('You can guess starting next turn.');
       if(room.turn.guesses[id])throw error('You already guessed.');
@@ -153,7 +153,7 @@ export class GameEngine {
   }
   beginTurn(room,first=false){
     const active=room.players.filter(playable);
-    if(active.length<3){this.checkPause(room);return;}
+    if(active.length<2){this.checkPause(room);return;}
     const indices=room.turnOrder.map((id,i)=>playable(room.players.find(p=>p.id===id))?i:-1).filter(i=>i>=0);
     if(first){if(!indices.includes(room.turnIndex))room.turnIndex=indices[0];}
     else {let next=indices.find(i=>i>room.turnIndex);room.turnIndex=next??indices[0];}
@@ -162,7 +162,7 @@ export class GameEngine {
     const pool=JINXES.filter(j=>j.id!==pourer.lastJinx);
     const offered=sample(pool,3).map(j=>j.id);
     room.turnNumber++;
-    room.turn={turnNumber:room.turnNumber,pourerId:pourer.id,jinxerId:jinxer?.id||null,offered,options:[],jinx:null,guesses:{},startCup:room.cup,added:0,started:false,held:false,effectiveHeld:false,releaseRequested:false,events:[],pourStartAt:0,pourEndAt:0,pouringSince:0,lastTick:this.clock(),dripping:false,stopRequested:false,shakyAt:0,butterAt:0,butterHappened:false,ketchupDelay:1000+this.random()*1000};
+    room.turn={turnNumber:room.turnNumber,pourerId:pourer.id,jinxerId:jinxer?.id||null,headToHead:active.length===2,offered,options:[],jinx:null,guesses:{},startCup:room.cup,added:0,started:false,held:false,effectiveHeld:false,releaseRequested:false,events:[],pourStartAt:0,pourEndAt:0,pouringSince:0,lastTick:this.clock(),dripping:false,stopRequested:false,shakyAt:0,butterAt:0,butterHappened:false,ketchupDelay:1000+this.random()*1000};
     room.reveal=null;
     if(jinxer&&jinxer.id!==pourer.id){room.phase='jinx';room.deadline=this.clock()+this.ms(10000);}
     else this.chooseJinx(room,offered[Math.floor(this.random()*offered.length)]);
@@ -229,6 +229,9 @@ export class GameEngine {
   endPour(room,spill=room.cup>100){
     if(room.phase!=='pour')return;
     const t=room.turn;t.dripping=false;t.effectiveHeld=false;t.events=[];t.spilled=spill;
+    // In a two-player face-off, the rival picked the handicap and already knows it.
+    // Skip the detective phase entirely; scores come from pouring and sabotaging.
+    if(t.headToHead){this.revealTurn(room);return;}
     room.phase='guess';room.deadline=this.clock()+this.ms(5000);
   }
   revealTurn(room){
@@ -344,14 +347,14 @@ export class GameEngine {
     const now=this.clock(),t=room.turn;
     const secretAccess=t&&(p.id===t.pourerId||p.id===t.jinxerId);
     const exposedJinx=t&&(room.phase==='reveal'||room.phase==='scoreboard'||room.phase==='gameover'||secretAccess);
-    const guessVisible=t&&['pour','guess'].includes(room.phase)&&p.id!==t.pourerId&&p.id!==t.jinxerId&&!(p.spectator&&t.turnNumber<=p.joinTurn)&&!room.duel?.active;
+    const guessVisible=t&&!t.headToHead&&['pour','guess'].includes(room.phase)&&p.id!==t.pourerId&&p.id!==t.jinxerId&&!(p.spectator&&t.turnNumber<=p.joinTurn)&&!room.duel?.active;
     const result={
       code:room.code,phase:room.phase,hostId:room.hostId,me:p.id,serverTime:now,deadline:room.deadline,remainingMs:Math.max(0,room.deadline-now),paused:!!room.pauseStarted,pauseRemaining:room.pauseStarted?Math.max(0,room.pauseDeadline-now):0,
       settings:room.settings,spills:room.spills,level:round(room.cup),spillLimit:room.settings.spillLimit,turnNumber:room.turnNumber,
       players:room.players.map(x=>({id:x.id,name:x.name,avatar:x.avatar,score:x.score,correct:x.correct,goodPours:x.goodPours,sabotages:x.sabotages,connected:connected(x),spectator:x.spectator,waitingSeat:x.waitingSeat,ready:x.ready})),
       winner:room.winner,duel:room.duel?{active:room.duel.active,round:room.duel.round,index:room.duel.index,total:room.duel.ids.length,results:room.duel.results}:null,
       turn:t?{
-        turnNumber:t.turnNumber,pourerId:t.pourerId,jinxerId:t.jinxerId,
+        turnNumber:t.turnNumber,pourerId:t.pourerId,jinxerId:t.jinxerId,headToHead:!!t.headToHead,
         jinx:exposedJinx?t.jinx:null,
         cards:room.phase==='jinx'&&p.id===t.jinxerId?t.offered.map(id=>JINX_BY_ID[id]):[],
         options:guessVisible?t.options.map(id=>JINX_BY_ID[id]):[],

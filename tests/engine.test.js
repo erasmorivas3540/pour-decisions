@@ -22,12 +22,14 @@ test('create, join, duplicate names and basic access control',()=>{
  assert.throws(()=>s.engine.auth(s.A.code,s.B.id,'bad'),/seat was not found/);
  assert.throws(()=>s.engine.create('','🦊'),/friendly name/);
 });
-test('host-only start, settings and required 3 connected',()=>{
+test('host-only start, settings and required 2 connected',()=>{
  const s=setup();assert.throws(()=>s.run(s.B,'start'),/Only the host/);
  s.run(s.A,'settings',{spillLimit:5});assert.equal(s.room.settings.spillLimit,5);
  assert.throws(()=>s.run(s.A,'settings',{spillLimit:4}),/Choose 3, 5, or 7/);
  s.engine.connection(s.C.code,s.C.id,s.C.token,-1);
- assert.throws(()=>s.run(s.A,'start'),/At least 3/);
+ s.engine.connection(s.B.code,s.B.id,s.B.token,-1);
+ assert.throws(()=>s.run(s.A,'start'),/At least 2/);
+ s.engine.connection(s.B.code,s.B.id,s.B.token,1);
  s.engine.connection(s.C.code,s.C.id,s.C.token,1);
  s.start();assert.equal(s.room.turn.turnNumber,1);
 });
@@ -88,10 +90,12 @@ test('host handoff, pause on disconnect, reconnect preserves score',()=>{
  const s=setup();s.start();s.room.players[0].score=99;
  s.engine.connection(s.A.code,s.A.id,s.A.token,-1);
  s.advance(2100);assert.equal(s.room.hostId,s.B.id);
- assert.equal(s.room.pauseStarted>0,true);
+ assert.equal(s.room.pauseStarted,0,'two remaining players can continue');
+ s.engine.connection(s.C.code,s.C.id,s.C.token,-1);
+ assert.equal(s.room.pauseStarted>0,true,'one connected player pauses the game');
  s.engine.connection(s.A.code,s.A.id,s.A.token,1);
  assert.equal(s.room.pauseStarted,0);assert.equal(s.state(s.A).players[0].score,99);
- s.engine.connection(s.C.code,s.C.id,s.C.token,-1);s.advance(120100);
+ s.engine.connection(s.A.code,s.A.id,s.A.token,-1);s.advance(120100);
  assert.equal(s.room.phase,'gameover');assert.equal(s.room.winner,s.A.id);
 });
 test('mid-game join is spectator until a new cup, wrong/empty names filtered',()=>{
@@ -160,4 +164,62 @@ test('all 12 jinxes: timing, rate, foam, delayed view and inverted input',()=>{
   if(j.id==='heavy'){advance(300);assert.ok(t.added>0);}
   if(room.phase==='pour'){s.run(p,'pourUp');advance(2000);assert.equal(room.phase,'guess',j.id+' should finish');}
  }
+});
+
+
+test('two-player room starts and alternates jinx/pour without a detective phase',()=>{
+ let now=100000;const engine=new GameEngine({clock:()=>now,random:()=>.22});
+ const A=engine.create('Al','🦊');const B=engine.join(A.code,'Bo','🐸');
+ const room=engine.room(A.code);const people=[A,B];
+ const action=(p,type,value={})=>engine.action(p.code,p.id,p.token,type,value);
+ const advance=ms=>{for(let i=0;i<ms;i+=50){now+=Math.min(50,ms-i);engine.tick();}};
+ for(const p of people)engine.connection(p.code,p.id,p.token,1);
+ action(A,'start');assert.equal(room.phase,'howto');
+ action(A,'ready');action(B,'ready');assert.equal(room.phase,'pour');
+ assert.equal(room.turn.headToHead,true);
+ assert.equal(room.turn.jinxerId,null,'first jinx is chosen by game');
+ const first=people.find(p=>p.id===room.turn.pourerId);
+ const other=people.find(p=>p.id!==first.id);
+ const hidden=engine.state(room,room.players.find(p=>p.id===other.id));
+ assert.equal(hidden.turn.jinx,null);
+ assert.equal(hidden.turn.options.length,0,'no guesses in two-player mode');
+ assert.throws(()=>action(other,'guess',{jinx:room.turn.jinx}),/two-player game/);
+ if(room.turn.jinx==='opposite'){advance(650);action(first,'stop');}
+ else {action(first,'pourDown');advance(150);action(first,'pourUp');}
+ for(let i=0;i<120&&room.phase==='pour';i++)advance(50);
+ assert.equal(room.phase,'reveal','a two-player pour reveals immediately without 5s wait');
+ assert.equal(room.players.find(p=>p.id===first.id).score,Math.round(10*JINXES.find(j=>j.id===room.turn.jinx).mult));
+ advance(4600);
+ assert.equal(room.phase,'jinx');assert.equal(room.turn.pourerId,other.id);
+ assert.equal(room.turn.jinxerId,first.id);
+ assert.equal(room.turn.headToHead,true);
+ assert.equal(engine.state(room,room.players.find(p=>p.id===first.id)).turn.cards.length,3);
+ assert.equal(engine.state(room,room.players.find(p=>p.id===other.id)).turn.cards.length,0);
+ action(first,'pickJinx',{jinx:room.turn.offered.find(id=>!['opposite','ketchup'].includes(id))});
+ const picked=room.turn.jinx;
+ assert.equal(engine.state(room,room.players.find(p=>p.id===first.id)).turn.jinx,picked);
+ assert.equal(engine.state(room,room.players.find(p=>p.id===other.id)).turn.jinx,picked);
+ room.cup=99;
+ action(other,'pourDown');for(let i=0;i<120&&room.phase==='pour';i++)advance(50);
+ assert.equal(room.phase,'reveal','a spill reveals immediately, too');
+ assert.equal(room.spills,1);
+ assert.equal(room.players.find(p=>p.id===other.id).score,-15);
+ assert.equal(room.players.find(p=>p.id===first.id).sabotages,1);
+ assert.ok(room.players.find(p=>p.id===first.id).score>=5);
+ advance(4600);assert.equal(room.phase,'scoreboard');assert.equal(room.cup,0);
+ advance(5200);assert.ok(['jinx','pour'].includes(room.phase));
+});
+
+test('two-player disconnect pauses at one player and reconnect resumes',()=>{
+ let now=100000;const engine=new GameEngine({clock:()=>now,random:()=>.22});
+ const A=engine.create('Alex','🦊'),B=engine.join(A.code,'Blair','🐸');
+ engine.connection(A.code,A.id,A.token,1);engine.connection(B.code,B.id,B.token,1);
+ const room=engine.room(A.code);
+ engine.action(A.code,A.id,A.token,'start');
+ engine.action(A.code,A.id,A.token,'ready');engine.action(B.code,B.id,B.token,'ready');
+ engine.connection(B.code,B.id,B.token,-1);
+ assert.ok(room.pauseStarted);
+ assert.throws(()=>engine.action(A.code,A.id,A.token,'pourDown'),/paused/);
+ engine.connection(B.code,B.id,B.token,1);
+ assert.equal(room.pauseStarted,0);assert.ok(['pour','reveal'].includes(room.phase));
 });

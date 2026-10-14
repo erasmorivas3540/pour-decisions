@@ -8,7 +8,7 @@
 
 ## Project description (copy to Handshake)
 
-**Pour Decisions** is a no-download, real-time multiplayer party game where 3–8 friends on separate devices take turns filling the same dangerously full cup. The twist? Your friends secretly jinx your controls, vision, or bottle before each pour. Everyone else gets one shot at guessing your handicap before the dramatic reveal.
+**Pour Decisions** is a no-download, real-time multiplayer party game where 2–8 friends on separate devices take turns filling the same dangerously full cup. The twist? Your friends secretly jinx your controls, vision, or bottle before each pour. When 3 or more players are seated, anyone who didn't pick the jinx or pour can guess the handicap before the reveal. With 2 players, the game becomes a fast head-to-head duel without guessing.
 
 **How to play:** (1) Secretly choose a jinx for the next player. (2) Pour at least six units without overflowing the shared cup. (3) Guess the jinx, earn points, and survive until the final spill. Nobody gets eliminated, so the entire group stays involved.
 
@@ -22,7 +22,7 @@
 - [x] Multiplayer source code created and locally tested with 3 simultaneous streaming clients.
 - [x] Reconnection, scorekeeping, hidden jinxes, and all 12 jinx families have automated coverage.
 - [ ] Deploy to a publicly accessible HTTPS URL and replace the placeholder above.
-- [ ] Test on three physical devices (iPhone, Android, laptop) simultaneously.
+- [ ] Test on at least two physical devices (iPhone, Android, laptop) simultaneously.
 - [ ] Ask someone new to follow the instructions without your assistance.
 - [ ] Submit in Handshake's **Create a Multiplayer Game** mission by **October 30, 2026, 11:59 PM PT**.
 

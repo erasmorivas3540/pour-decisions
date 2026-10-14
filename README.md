@@ -1,6 +1,6 @@
 # 🫗 Pour Decisions
 
-**A real, server-authoritative, multiplayer party game.** Three to eight friends join the same room on separate phones or laptops, secretly jinx one another, carefully fill a shared cup, and try to identify the jinx. No login or install.
+**A real, server-authoritative, multiplayer party game.** Two to eight friends join the same room on separate phones or laptops, secretly jinx one another, carefully fill a shared cup, and try to identify the jinx. No login or install.
 
 ![Actual game UI preview](artwork/cover.png)
 
@@ -12,7 +12,7 @@ No dependencies, package installation, database, or API keys required.
 npm start
 ```
 
-Open **http://localhost:3000** in a browser. Create a room, share the four-letter code, and have at least two additional players join. Locally, use three **independent browser profiles** (or use `?room=CODE&new=1` in separate tabs to force a new seat). The host can start once three seated players are connected.
+Open **http://localhost:3000** in a browser. Create a room, share the four-letter code, and have at least one additional player join. Locally, use two **independent browser profiles** (or use `?room=CODE&new=1` in separate tabs to force a new seat). The host can start once two seated players are connected.
 
 **Important:** localhost is only accessible from your machine. To meet the contest's publicly accessible URL requirement, deploy this Node server to an Internet hosting platform, as described below.
 
@@ -23,11 +23,15 @@ This repository contains `render.yaml` for a single-instance web service.
 1. Create a GitHub repository and add these project files to its root.
 2. In [Render](https://dashboard.render.com/), select **New → Blueprint**, connect the repository, and choose the included `render.yaml`. Alternatively, create a **Web Service**, set runtime **Node**, build command `npm install --omit=dev`, and start command `npm start`.
 3. Choose a **single Node.js instance** (the included Blueprint defaults to Render Free) and complete deployment. Copy the resulting HTTPS address (`https://your-service.onrender.com`).
-4. Open the HTTPS address on three different devices and share invite links. Submit that address as your Handshake project URL.
+4. Open the HTTPS address on two different devices and share invite links. Submit that address as your Handshake project URL.
 
 The health check is `GET /health`. Hosting must support long-lived HTTP responses / **Server-Sent Events (SSE)**. Keep **one running server instance**: rooms are stored in memory, not a shared database. An instance restart clears open rooms. On Render Free, a sleeping service loses active room sessions and can have cold-start delays; consider a paid always-on instance only if you approve the cost. Production uses `GAME_TIME_SCALE=1` (the default).
 
 You can also deploy the supplied `Dockerfile` to Railway, Fly.io, a VM, or any platform running a long-lived Node server; set `PORT` to the service's provided port (defaults to 3000). Static-only hosting such as GitHub Pages **will not work** because the game requires a live Node backend.
+
+## Two-player head-to-head mode
+
+Two players can now start immediately. One pours while the other watches. After the first round (which uses a random jinx), the previous pourer chooses one of three jinxes to sabotage the opponent. Because the jinxer already knows the secret, **guessing is skipped in two-player games**, and reveals follow pours immediately. Safe pour points, spill penalties, sabotage points, and the host-selected spill limit work as usual. If fewer than two seated players remain connected, the game pauses until one reconnects. Rooms still support up to eight players, with the original guessing game for three or more players.
 
 ## How to play
 
@@ -39,10 +43,10 @@ You can also deploy the supplied `Dockerfile` to Railway, Fly.io, a VM, or any p
 ## Features
 
 - Four-letter room code, invite URLs, nicknames up to 12 characters, emoji avatars, duplicate-name numbering.
-- 3–8 seated players and optional spectators, join in progress, guessing from the following turn and entry into player rotation at the next cup if there is a seat.
+- 2–8 seated players and optional spectators, join in progress, guessing from the following turn and entry into player rotation at the next cup if there is a seat.
 - **All 12 jinxes**: Foggy Glasses, Tunnel Vision, Lag Goggles, Lights Out, Shaky Hands, Heavy Arm, Opposite Day, Butterfingers, Fire Hose, Eyedropper, Ketchup Bottle, Soda Can.
 - Server-owned 20 Hz cup updates, hidden role data, authoritative scoring, card selection and timers, anti-duplicate-guess checks, and per-session credentials.
-- Reconnection into the same seat on refresh, minimum drip on disconnect, 2-second grace for a refreshing host, host transfer after departure, 2-minute pause after fewer than 3 players remain, rematch and same-room replay.
+- Reconnection into the same seat on refresh, minimum drip on disconnect, 2-second grace for a refreshing host, host transfer after departure, 2-minute pause after fewer than 2 players remain, rematch and same-room replay.
 - Three-card instructions, mobile-first design, desktop layout, reduced motion, optional sounds, mute, low-latency SSE, results, leaderboards, fun awards and screenshot cover art.
 - No third-party JavaScript dependencies or account sign-ins.
 

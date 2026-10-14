@@ -30,3 +30,10 @@
 - Because room data is in memory, durability across server restarts and multi-instance scaling is not supported (not required for a short live party game, but relevant to hosting).
 
 **Conclusion:** Source is launchable on a single Node service and passed the automated tests above. Internet deployment and device playtesting remain external steps.
+
+## October 14, 2026 — two-player support
+
+- Minimum connected players changed from 3 to **2** for game start and automatic pause/resume checks.
+- When only two players are active, jinx and pour stages alternate with immediate reveal; guessing is skipped because the jinxer is the other participant. The original guessing rounds remain for groups of three or more.
+- Home screen, lobby readiness button, waiting seats and instructions updated for **2–8 players**.
+- Test suite expanded to **16 passing tests**, including two-player engine coverage, reconnect/pause behavior, head-to-head scoring, and an actual two-client HTTP/SSE integration test. Three-player live integration and all 12 jinxes remain covered.
