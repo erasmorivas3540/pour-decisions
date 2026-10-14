@@ -85,15 +85,16 @@ function cupScene(level=0,{foam=false,danger=false,pouring=false,jinx='',elapsed
  <div class="stream" aria-hidden="true"><span class="droplet droplet-a"></span><span class="droplet droplet-b"></span><span class="droplet droplet-c"></span></div>
  <div class="glass-shadow" aria-hidden="true"></div>
  <div class="glass-area">
- <div class="measure measure-a">25</div><div class="measure measure-b">50</div><div class="measure measure-c">75</div>
- <div class="top-glass" role="img" aria-label="An over-the-glass view of a shared cup being filled with water">
+ <div class="glass-shell" role="img" aria-label="An overhead view of a glass measuring cup being filled with water">
+ <div class="glass-spout" aria-hidden="true"></div>
+ <div class="glass-handle" aria-hidden="true"></div>
+ <div class="top-glass">
  <div class="glass-rim outer"></div><div class="glass-rim inner"></div>
- <div class="water" data-water style="height:${Math.max(22,visualLevel*.75)}%;--water-level:${visualLevel}"><div class="water-wave wave-front"></div><div class="water-wave wave-back"></div><span class="bubble bubble-1"></span><span class="bubble bubble-2"></span><span class="bubble bubble-3"></span><span class="bubble bubble-4"></span></div>
+ <div class="water" data-water style="height:${Math.max(22,visualLevel*.75)}%;--water-level:${visualLevel}"><div class="water-wave wave-front"></div><div class="water-wave wave-back"></div><span class="bubble bubble-1"></span><span class="bubble bubble-2"></span><span class="bubble bubble-3"></span><span class="bubble bubble-4"></span><span class="bubble bubble-5"></span><span class="bubble bubble-6"></span></div>
  <div class="glass-highlight"></div>
  <div class="glass-reflection"></div>
- <div class="center-readout"><span>${Math.round(visualLevel)}</span><small>/100</small></div>
  </div>
- <div class="pour-target">Aim for a clean finish</div>
+ </div>
  </div>
  <span class="danger-label" aria-hidden="true">⚠️ CLOSE TO THE TOP</span><span class="counter-spark">✧</span></div>
  <div class="stage-bottom"><span class="stage-caption">${hero?'ONE CUP · PHOTOREAL CHAOS':spilled?'💦 OVERFLOW!':'OVERHEAD POUR · AIM CAREFULLY'}</span><span class="stage-mark" aria-hidden="true">✳</span></div></div>`;
