@@ -4,6 +4,10 @@
 
 ![Actual game UI preview](artwork/cover.png)
 
+## Play online
+
+**Live multiplayer game:** https://pour-decisions-ozbh.onrender.com
+
 ## Quick start (Node.js 20+)
 
 No dependencies, package installation, database, or API keys required.
@@ -35,19 +39,26 @@ Two players can now start immediately. One pours while the other watches. After 
 
 ## How to play
 
+**No rules timer:** At the beginning of a game, every player can read all three illustrated rule slides for as long as they need. The server starts gameplay only when all connected players have tapped **I’m ready**. There is no automatic rules-screen timeout.
+
+
 1. **Jinx:** After the first turn, the previous pourer picks 1 of 3 secret jinx cards for the next pourer. Only those two see the true jinx before reveal. The first turn gets a randomly selected jinx.
-2. **Pour:** Hold to pour and release to finish. Each turn adds at least 6 units, and going over 100 spills the cup. Start within 10 seconds; each active pour lasts up to 8 seconds (Eyedropper lasts up to 4). **Opposite Day** automatically pours and holding pauses the flow; press **Finish this pour** to stop it.
+2. **Pour:** Hold to pour and release to finish. Each turn adds at least 6 units, and going over 100 spills the cup. Start within 10 seconds; each active pour lasts up to 12 seconds (Eyedropper lasts up to 8). Normal pouring is 3 units/second, four times slower than the original build; Fire Hose is 9 units/second and Eyedropper is 1 unit/second. **Opposite Day** automatically pours and holding pauses the flow; press **Finish this pour** to stop it.
 3. **Guess:** Other players choose from four possible jinxes while watching; guesses lock five seconds after pouring ends. Correct guesses earn +5. The pourer earns +2 per wrong guess.
 4. **Score:** A safe pour earns 10/15/20 points based on difficulty. Spill: −15; the jinxer gets a +5 sabotage bonus. Spills empty the cup; everyone stays in. End after 3, 5, or 7 spills (host setting). Score ties break by correct guesses, then equal-handicap sudden-death pours.
+
+## New overhead view and distance handicap
+
+The shared glass is now viewed from above with a photo-inspired kitchen counter, transparent rim, animated water and bottle stream. **5 Feet Above** is a new Distance-family jinx worth **1.5×**: only the pourer sees the glass pulled farther away. All other vision, hand and bottle handicaps stay in the game, and the server still owns water physics.
 
 ## Features
 
 - Four-letter room code, invite URLs, nicknames up to 12 characters, emoji avatars, duplicate-name numbering.
 - 2–8 seated players and optional spectators, join in progress, guessing from the following turn and entry into player rotation at the next cup if there is a seat.
-- **All 12 jinxes**: Foggy Glasses, Tunnel Vision, Lag Goggles, Lights Out, Shaky Hands, Heavy Arm, Opposite Day, Butterfingers, Fire Hose, Eyedropper, Ketchup Bottle, Soda Can.
+- **All 13 jinxes**: Foggy Glasses, Tunnel Vision, Lag Goggles, Lights Out, 5 Feet Above, Shaky Hands, Heavy Arm, Opposite Day, Butterfingers, Fire Hose, Eyedropper, Ketchup Bottle, Soda Can.
 - Server-owned 20 Hz cup updates, hidden role data, authoritative scoring, card selection and timers, anti-duplicate-guess checks, and per-session credentials.
 - Reconnection into the same seat on refresh, minimum drip on disconnect, 2-second grace for a refreshing host, host transfer after departure, 2-minute pause after fewer than 2 players remain, rematch and same-room replay.
-- Three-card instructions, mobile-first design, desktop layout, reduced motion, optional sounds, mute, low-latency SSE, results, leaderboards, fun awards and screenshot cover art.
+- Three illustrated instruction cards with unlimited reading time and per-player readiness, an overhead, photo-inspired animated glass / slow water stream, mobile-first design, reduced motion, optional sounds, mute, low-latency SSE, results, leaderboards, fun awards and screenshot cover art.
 - No third-party JavaScript dependencies or account sign-ins.
 
 ## Architecture
@@ -70,6 +81,7 @@ POST /api/action   ──────────>  Validate actor, phase and pa
 - `game.js`: game room engine, rules, authority and timed effects.
 - `public/`: web UI (HTML, CSS, JS) and favicon.
 - `tests/engine.test.js`: game/edge-case regression tests.
+- `tests/pacing-and-guide.test.js`: explicit no-timeout onboarding, all-player readiness, slow-flow rate and minimum-trickle regression tests.
 - `tests/integration.test.js`: three actual simultaneous HTTP/SSE clients and private-info checks.
 - `tests/render_preview.py`: offline Chromium visual previews of the shipped UI; generates screenshots in `artwork/`.
 - `tests/browser_smoke.py`: optional full web-browser walkthrough on a machine where Chromium allows localhost access.
@@ -83,7 +95,7 @@ POST /api/action   ──────────>  Validate actor, phase and pa
 npm run check
 ```
 
-This runs syntax checks and 13 Node tests, including a fresh local server and three independent streaming clients. Optional UI screenshot test if Python Playwright and Chromium are available:
+This runs syntax checks and 19 Node tests, including a fresh local server and three independent streaming clients. Optional UI screenshot test if Python Playwright and Chromium are available:
 
 ```bash
 python tests/render_preview.py
@@ -104,4 +116,4 @@ The hosted page should be checked on a real iPhone, Android, and laptop before f
 - Rooms with no connected users close after 30 minutes of inactivity. A temporary network loss is recoverable while the same backend process remains online.
 - Keep the service up for the game and avoid very aggressive platform idle timeouts. If the service requires an SSE idle/response timeout, configure it above a few minutes; streaming emits state at least four times per second.
 - This is an age-neutral cartoon game using water, not actual drinking.
-- No actual deployment credentials or externally hosted URL are bundled. Public hosting requires your Render/Railway/cloud account.
+- The production service is already deployed to Render under the owner’s account. A Render restart or free-plan spin-down can reset in-progress rooms.

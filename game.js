@@ -5,6 +5,7 @@ export const JINXES = [
   {id:'tunnel',name:'Tunnel Vision',family:'Vision',icon:'👁️',mult:2,desc:'See only a drifting strip.'},
   {id:'lag',name:'Lag Goggles',family:'Vision',icon:'⏳',mult:2,desc:'The level lags one second behind.'},
   {id:'lights',name:'Lights Out',family:'Vision',icon:'🌑',mult:2,desc:'The cup goes dark after 1.5s.'},
+  {id:'above',name:'5 Feet Above',family:'Distance',icon:'🛰️',mult:1.5,desc:'The camera lifts high above the glass.'},
   {id:'shaky',name:'Shaky Hands',family:'Hands',icon:'🫨',mult:1.5,desc:'Random extra splashes while pouring.'},
   {id:'heavy',name:'Heavy Arm',family:'Hands',icon:'🏋️',mult:1.5,desc:'Controls react 0.6 seconds late.'},
   {id:'opposite',name:'Opposite Day',family:'Hands',icon:'🔄',mult:2,desc:'Water pours unless you hold to pause.'},
@@ -263,7 +264,7 @@ export class GameEngine {
     this.startDuel(room,top.map(p=>p.id));
   }
   startDuel(room,ids){
-    const jinx=sample(JINXES.filter(j=>['fog','tunnel','lag','lights','soda'].includes(j.id)),1)[0].id;
+    const jinx=sample(JINXES.filter(j=>['fog','tunnel','lag','lights','above','soda'].includes(j.id)),1)[0].id;
     room.duel={active:true,ids,index:0,results:[],jinx,round:(room.duel?.round||0)+1};
     this.beginDuelPour(room);
   }

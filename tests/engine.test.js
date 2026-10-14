@@ -68,7 +68,7 @@ test('spill costs 15, sabotage earns 5, cup resets; 3 spills ends',()=>{
  assert.equal(s.room.spills,3);
 });
 test('every jinx is offered and timing effects change server water',()=>{
- const s=setup();s.start();assert.equal(JINXES.length,12);
+ const s=setup();s.start();assert.equal(JINXES.length,13);
  const t=s.room.turn,p=s.current();
  t.jinx='fire';s.room.cup=0;s.run(p,'pourDown');s.advance(500);assert.ok(s.room.cup>4&&s.room.cup<5);
  s.run(p,'pourUp');s.advance(1300);assert.equal(s.room.phase,'guess');
@@ -137,7 +137,7 @@ test('8 seats across independent players; ninth participant becomes a spectator'
  assert.equal(s.engine.sorted(s.room).length,8);
  assert.equal(s.room.players.length,9);
 });
-test('all 12 jinxes: timing, rate, foam, delayed view and inverted input',()=>{
+test('all 13 jinxes: timing, rate, foam, delayed view and inverted input',()=>{
  for(const j of JINXES){
   const s=setup();s.start();const {room,engine,advance}=s;
   room.cup=30;room.turn.startCup=30;engine.chooseJinx(room,j.id);
