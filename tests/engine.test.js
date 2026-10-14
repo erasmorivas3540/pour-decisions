@@ -70,10 +70,10 @@ test('spill costs 15, sabotage earns 5, cup resets; 3 spills ends',()=>{
 test('every jinx is offered and timing effects change server water',()=>{
  const s=setup();s.start();assert.equal(JINXES.length,12);
  const t=s.room.turn,p=s.current();
- t.jinx='fire';s.room.cup=0;s.run(p,'pourDown');s.advance(500);assert.ok(s.room.cup>13);
- s.run(p,'pourUp');s.advance(1000);assert.equal(s.room.phase,'guess');
- const another=setup();another.start();another.room.turn.jinx='eye';another.run(another.current(),'pourDown');another.advance(1000);assert.ok(another.room.cup>=3&&another.room.cup<6);
- another.advance(4100);assert.equal(another.room.phase,'guess');assert.ok(another.room.turn.added>=6);
+ t.jinx='fire';s.room.cup=0;s.run(p,'pourDown');s.advance(500);assert.ok(s.room.cup>4&&s.room.cup<5);
+ s.run(p,'pourUp');s.advance(1300);assert.equal(s.room.phase,'guess');
+ const another=setup();another.start();another.room.turn.jinx='eye';another.run(another.current(),'pourDown');another.advance(1000);assert.ok(another.room.cup>=.9&&another.room.cup<=1.1);
+ another.advance(7100);assert.equal(another.room.phase,'guess');assert.ok(another.room.turn.added>=6);
 });
 test('jinxer selects only offered cards; hidden until reveal',()=>{
  const s=setup();s.start();s.room.turn.jinx='fire';s.run(s.current(),'pourDown');s.advance(600);s.run(s.current(),'pourUp');s.advance(2500);s.advance(5100);s.advance(4600);
@@ -121,7 +121,7 @@ test('strict tie triggers same-jinx sudden death with turns for all finalists',(
  assert.equal(s.room.phase,'pour');assert.equal(s.room.duel.active,true);
  const j=s.room.turn.jinx;
  for(let i=0;i<3;i++){
-  const p=s.current();s.run(p,'pourDown');s.advance(600+i*250);s.run(p,'pourUp');s.advance(1800);assert.equal(s.room.phase,'guess');
+  const p=s.current();s.run(p,'pourDown');s.advance(2550+i*350);s.run(p,'pourUp');s.advance(2100);assert.equal(s.room.phase,'guess');
   s.advance(5100);s.advance(4600);
   if(i<2)assert.equal(s.room.turn.jinx,j);
  }
@@ -147,18 +147,18 @@ test('all 12 jinxes: timing, rate, foam, delayed view and inverted input',()=>{
    assert.equal(t.started,true);advance(250);const before=room.cup;assert.ok(before>30);
    s.run(p,'pourDown');advance(200);assert.equal(room.cup,before);
    s.run(p,'pourUp');advance(200);assert.ok(room.cup>before);
-   s.run(p,'stop');advance(1200);assert.equal(room.phase,'guess');continue;
+   s.run(p,'stop');advance(2200);assert.equal(room.phase,'guess');continue;
   }
   s.run(p,'pourDown');advance(500);
-  if(j.id==='fire')assert.ok(t.added>14,'Fire Hose should pour at triple speed');
+  if(j.id==='fire')assert.ok(t.added>4&&t.added<5,'Fire Hose should pour at 9 units per second');
   if(j.id==='eye')assert.ok(t.added<3,'Eyedropper should pour slowly');
   if(j.id==='heavy')assert.ok(t.added<.01,'Heavy Arm must delay first 600ms');
   if(j.id==='ketchup')assert.equal(t.added,0,'Ketchup should stall');
   if(j.id==='soda')assert.equal(s.state(s.B).turn.foam,true);
   if(j.id==='fog'||j.id==='tunnel')assert.equal(s.state(p).level>30,true);
   if(j.id==='lag')assert.ok(s.state(p).level<room.cup);
-  if(j.id==='shaky')assert.ok(t.added>=6);
-  if(j.id==='butter'){advance(1000);assert.equal(t.butterHappened,true);assert.ok(t.added>15);}
+  if(j.id==='shaky')assert.ok(t.added>=1.4&&t.added<2.5);
+  if(j.id==='butter'){advance(1000);assert.equal(t.butterHappened,true);assert.ok(t.added>10);}
   if(j.id==='lights'){advance(1100);assert.equal(s.state(p).level,null);}
   if(j.id==='ketchup'){advance(900);assert.ok(t.added>0);}
   if(j.id==='heavy'){advance(300);assert.ok(t.added>0);}

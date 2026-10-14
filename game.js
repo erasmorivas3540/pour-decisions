@@ -10,13 +10,17 @@ export const JINXES = [
   {id:'opposite',name:'Opposite Day',family:'Hands',icon:'🔄',mult:2,desc:'Water pours unless you hold to pause.'},
   {id:'butter',name:'Butterfingers',family:'Hands',icon:'🧈',mult:1,desc:'A surprise 8-unit splash might happen.'},
   {id:'fire',name:'Fire Hose',family:'Bottle',icon:'🚒',mult:1.5,desc:'The bottle pours three times faster.'},
-  {id:'eye',name:'Eyedropper',family:'Bottle',icon:'💧',mult:1,desc:'Slow flow, but only four seconds.'},
+  {id:'eye',name:'Eyedropper',family:'Bottle',icon:'💧',mult:1,desc:'A tiny trickle, with an eight-second limit.'},
   {id:'ketchup',name:'Ketchup Bottle',family:'Bottle',icon:'🍅',mult:1.5,desc:'It stalls, then unleashes a huge glug.'},
   {id:'soda',name:'Soda Can',family:'Bottle',icon:'🥤',mult:1,desc:'Foam makes the cup look 10 units fuller.'}
 ];
 export const JINX_BY_ID = Object.fromEntries(JINXES.map(j=>[j.id,j]));
 const AVATARS = ['🦊','🐸','🐻','🐱','🐼','🐨','🦄','🐙','🐧','🐯','🦖','🐝'];
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+// Measured pacing: the shared cup now fills four times more slowly than at launch.
+export const POUR_RATE = 3;
+export const POUR_MAX_MS = 12000;
+export const EYEDROPPER_MAX_MS = 8000;
 const shuffle = a => [...a].sort(() => Math.random()-.5);
 const sample = (a,n) => shuffle(a).slice(0,n);
 const secret = () => randomBytes(20).toString('hex');
@@ -115,7 +119,7 @@ export class GameEngine {
     }else if(type==='start'){
       if(room.phase!=='lobby'||room.hostId!==id)throw error('Only the host can start.');
       if(room.players.filter(playable).length<2)throw error('At least 2 connected players are needed.');
-      room.phase='howto';room.deadline=now+this.ms(15000);
+      room.phase='howto';room.deadline=0; // Instructions have no timer. Every seated player must opt in.
       room.players.forEach(p=>p.ready=false);
     }else if(type==='ready'){
       if(room.phase!=='howto')throw error('The game is no longer on instructions.');
@@ -174,13 +178,13 @@ export class GameEngine {
     t.lastTick=now;t.levelHistory=[{at:now,level:room.cup}];t.butterAt=(.5+this.random()*2.5)*this.ms(1000);t.butterHappened=this.random()>=.25;
     room.phase='pour';room.deadline=now+this.ms(10000);
     if(id==='opposite'){
-      t.started=true;t.pourStartAt=now;t.pourEndAt=now+this.ms(8000);t.pouringSince=now;
+      t.started=true;t.pourStartAt=now;t.pourEndAt=now+this.ms(POUR_MAX_MS);t.pouringSince=now;
     }
   }
   pressPour(room,down){
     const t=room.turn;const now=this.clock();
     if(t.stopRequested||t.dripping)return;
-    if(!t.started){t.started=true;t.pourStartAt=now;t.pourEndAt=now+this.ms(t.jinx==='eye'?4000:8000);t.pouringSince=now;}
+    if(!t.started){t.started=true;t.pourStartAt=now;t.pourEndAt=now+this.ms(t.jinx==='eye'?EYEDROPPER_MAX_MS:POUR_MAX_MS);t.pouringSince=now;}
     if(t.jinx==='heavy')t.events.push({at:now+this.ms(600),down});
     else t.effectiveHeld=down;
     t.held=down;
@@ -218,13 +222,13 @@ export class GameEngine {
   }
   waterRate(t,now){
     const elapsed=(now-t.pourStartAt)/this.scale;
-    if(t.jinx==='fire')return 36;
-    if(t.jinx==='eye')return 4;
+    if(t.jinx==='fire')return POUR_RATE*3;
+    if(t.jinx==='eye')return POUR_RATE/3;
     if(t.jinx==='ketchup'){
       if(elapsed<t.ketchupDelay)return 0;
-      if(elapsed<t.ketchupDelay+500)return 48;
+      if(elapsed<t.ketchupDelay+500)return POUR_RATE*4;
     }
-    return 12;
+    return POUR_RATE;
   }
   endPour(room,spill=room.cup>100){
     if(room.phase!=='pour')return;
@@ -305,8 +309,7 @@ export class GameEngine {
       if(room.pauseStarted){
         if(now>=room.pauseDeadline){room.pauseStarted=0;room.winner=this.sorted(room)[0]?.id||null;room.phase='gameover';room.deadline=0;changed.push(room.code);}continue;
       }
-      if(room.phase==='howto'&&now>=room.deadline){this.startRounds(room);changed.push(room.code);}
-      else if(room.phase==='jinx'&&now>=room.deadline){this.chooseJinx(room,sample(room.turn.offered,1)[0]);changed.push(room.code);}
+      if(room.phase==='jinx'&&now>=room.deadline){this.chooseJinx(room,sample(room.turn.offered,1)[0]);changed.push(room.code);}
       else if(room.phase==='pour'){
         const t=room.turn;
         const dt=Math.max(0,Math.min(0.2,(now-t.lastTick)/this.scale/1000));t.lastTick=now;
@@ -315,19 +318,19 @@ export class GameEngine {
         if(t.started){
           if(t.events?.length){const ready=t.events.filter(e=>now>=e.at);t.events=t.events.filter(e=>now<e.at);for(const e of ready)t.effectiveHeld=e.down;}
           const elapsed=(now-t.pourStartAt)/this.scale;
-          const maxDur=t.jinx==='eye'?4000:8000;
+          const maxDur=t.jinx==='eye'?EYEDROPPER_MAX_MS:POUR_MAX_MS;
           if(!t.dripping && (elapsed>=maxDur || now>=t.pourEndAt)){this.beginDrip(room);changed.push(room.code);continue;}
           const active=t.dripping||(t.jinx==='opposite'?!t.effectiveHeld:t.effectiveHeld);
           if(active){
-            let rate=t.dripping?12:this.waterRate(t,now);
+            let rate=t.dripping?POUR_RATE:this.waterRate(t,now);
             // The final mandatory six units always drip at normal speed.
-            if(t.dripping)rate=12;
+            if(t.dripping)rate=POUR_RATE;
             let added=rate*dt;
             if(t.dripping)added=Math.min(added,6-t.added);
             this.addWater(room,added);
             if(room.phase!=='pour'){changed.push(room.code);continue;}
             if(!t.dripping&&t.jinx==='shaky'){
-              const bucket=Math.floor(elapsed/500);if(bucket>t.shakyAt){t.shakyAt=bucket;this.addWater(room,this.random()*3);}
+              const bucket=Math.floor(elapsed/1000);if(bucket>t.shakyAt){t.shakyAt=bucket;this.addWater(room,this.random()*1.5);}
             }
             if(room.phase!=='pour'){changed.push(room.code);continue;}
             if(!t.dripping&&t.jinx==='butter'&&!t.butterHappened&&elapsed>=t.butterAt/this.scale){t.butterHappened=true;this.addWater(room,8);}
