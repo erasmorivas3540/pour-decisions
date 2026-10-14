@@ -49,7 +49,7 @@ Two players can now start immediately. One pours while the other watches. After 
 
 ## New overhead view and distance handicap
 
-The shared glass is now viewed from above with a photo-inspired kitchen counter, transparent rim, animated water and bottle stream. **5 Feet Above** is a new Distance-family jinx worth **1.5×**: only the pourer sees the glass pulled farther away. All other vision, hand and bottle handicaps stay in the game, and the server still owns water physics.
+During every live pour, **the active pourer sees the cup from overhead**, while every other player sees a **side view** of that same shared cup. The two cameras switch automatically when the next player pours, retaining the same synchronized water level. The pourer’s view has a photo-inspired kitchen counter, transparent rim, animated water and bottle stream. **5 Feet Above** is a new Distance-family jinx worth **1.5×**: only the pourer sees the glass pulled farther away. All other vision, hand and bottle handicaps stay in the game, and the server still owns water physics.
 
 ## Features
 
@@ -58,7 +58,7 @@ The shared glass is now viewed from above with a photo-inspired kitchen counter,
 - **All 13 jinxes**: Foggy Glasses, Tunnel Vision, Lag Goggles, Lights Out, 5 Feet Above, Shaky Hands, Heavy Arm, Opposite Day, Butterfingers, Fire Hose, Eyedropper, Ketchup Bottle, Soda Can.
 - Server-owned 20 Hz cup updates, hidden role data, authoritative scoring, card selection and timers, anti-duplicate-guess checks, and per-session credentials.
 - Reconnection into the same seat on refresh, minimum drip on disconnect, 2-second grace for a refreshing host, host transfer after departure, 2-minute pause after fewer than 2 players remain, rematch and same-room replay.
-- Three illustrated instruction cards with unlimited reading time and per-player readiness, an overhead, photo-inspired animated glass / slow water stream, mobile-first design, reduced motion, optional sounds, mute, low-latency SSE, results, leaderboards, fun awards and screenshot cover art.
+- Three illustrated instruction cards with unlimited reading time and per-player readiness, automatic overhead pourer and side-view spectator cameras with synchronized slow water, mobile-first design, reduced motion, optional sounds, mute, low-latency SSE, results, leaderboards, fun awards and screenshot cover art.
 - No third-party JavaScript dependencies or account sign-ins.
 
 ## Architecture
