@@ -245,7 +245,7 @@
 .sprite-photoreal .sprite-marble{position:absolute;inset:0;background:linear-gradient(135deg,#f0efed,#e5e1dc 55%,#f7f5f1),repeating-linear-gradient(115deg,transparent 0 38px,#949c9b09 39px 42px,transparent 45px 94px);z-index:0}
 .sprite-photoreal .sprite-marble::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 23% 20%,#fff9,transparent 42%),linear-gradient(127deg,transparent 0 34%,#a8a39e16 34.5% 35%,transparent 35.5% 76%,#aba7a11a 77% 77.5%,transparent 78%)}
 .sprite-photoreal .sprite-animation{z-index:2;width:min(100%,430px);aspect-ratio:1;background-image:url('/assets/overhead-water-settled.webp');background-size:400% 200%;background-repeat:no-repeat;position:relative;transition:transform .25s ease,filter .16s linear;filter:drop-shadow(0 8px 13px #35434c29);will-change:background-position}
-.sprite-photoreal.pouring .sprite-animation{background-image:url('/assets/overhead-water-sprites.webp')}
+.sprite-photoreal.pouring .sprite-animation{background-image:url('/assets/overhead-water-sprites-16.webp');background-size:400% 400%}
 .sprite-photoreal .sprite-ripple{position:absolute;left:44%;top:51%;border:2px solid #f9feff9a;border-radius:50%;height:26px;width:26px;opacity:0;pointer-events:none}
 .sprite-photoreal.pouring .sprite-ripple{animation:sprite-pour-ripple 1.05s linear infinite;opacity:.8}
 .sprite-photoreal .sprite-bubble{position:absolute;width:8px;height:8px;border:1px solid #fff9;border-radius:50%;background:#ecfdff48;opacity:0;pointer-events:none}
@@ -269,3 +269,8 @@
 .sprite-photoreal .sprite-animation{width:430px;max-width:calc(100% - 8px);flex-shrink:0}
 @media(max-width:830px){.sprite-photoreal .sprite-animation{width:360px}}
 @media(max-width:540px){.sprite-photoreal .sprite-animation{width:295px}}
+
+/* Two 4×4 photographic atlas layers crossfade as the authoritative cup fills.
+   The eight-frame settled atlas remains in use between pours. */
+.sprite-photoreal .sprite-next{position:absolute;inset:0;z-index:0;pointer-events:none;background-image:inherit;background-size:inherit;background-repeat:no-repeat;transition:opacity .14s linear;}
+.sprite-photoreal .sprite-ripple,.sprite-photoreal .sprite-bubble{z-index:1}

@@ -5,7 +5,7 @@
 ## Completed checks
 
 - `npm run check`: Node syntax checks plus **13 passing automated tests**.
-- Core engine: room creation, names and tokens; host authorization; starting with 3 people; settings 3/5/7; mandatory 6 units; synchronized scoring and guesses; spilling and cup resets; sabotage bonus; late spectator joins; rematch; host transfer; pause/reconnect; ties with same-jinx sudden death.
+- Core engine: room creation, names and tokens; host authorization; starting with 2 people; settings 3/5/7; mandatory 6 units; synchronized scoring and guesses; spilling and cup resets; sabotage bonus; late spectator joins; rematch; host transfer; pause/reconnect; ties with same-jinx sudden death.
 - Tested **all 12 jinx identifiers**: Fire Hose/ Eyedropper rates, Ketchup delay, Heavy Arm delayed presses, Opposite Day inverted input, Butterfingers splash, Shaky bursts, Fog/Tunnel blurred or clipped presentation values, Lag Goggles history, Lights Out blacked-out cup, Soda Can foam flag.
 - HTTP integration: launched a real local service with **three concurrent independent streaming connections**; started a room, began a round, poured over the network, verified snapshots and minimum filling, checked guesser state does not expose secret jinx data, submitted a valid guess, verified +5 score, rejected repeated guesses and forged authentication.
 - Headless Chromium **offline visual rendering** of the production HTML/CSS/JS: home, invite lobby, pourer, guessing, reveal, game over. Eight screenshot assets generated. Checked 390px mobile and 1200px desktop layouts; no horizontal overflow. UI navigation and help modal were exercised in the offline preview.
@@ -37,3 +37,20 @@
 - When only two players are active, jinx and pour stages alternate with immediate reveal; guessing is skipped because the jinxer is the other participant. The original guessing rounds remain for groups of three or more.
 - Home screen, lobby readiness button, waiting seats and instructions updated for **2–8 players**.
 - Test suite expanded to **16 passing tests**, including two-player engine coverage, reconnect/pause behavior, head-to-head scoring, and an actual two-client HTTP/SSE integration test. Three-player live integration and all 12 jinxes remain covered.
+
+
+## UX & pacing release — October 14, 2026
+
+- **19/19 automated Node tests passed**, including two-player and three-player network streaming integrations, and three new coverage cases for indefinite rules reading, rate scaling, and slow minimum completion.
+- The normal server-authoritative water rate is now **3 units/second** versus 12 before; Fire Hose 9/sec, Eyedropper 1/sec, Ketchup burst 12/sec, minimum drip 3/sec; normal hold duration 12 seconds, Eyedropper 8 seconds.
+- Starting rules no longer have a timer (`deadline=0`) or an auto-advance branch. Every connected seated player must tap **I’m ready**. Tested after 3+ simulated minutes and partial readiness.
+- Redrew the kitchen scene, bottle, water shading, waves, bubbles, cup measurements, danger cues, and illustrated tutorial slides. Offline Chromium verified desktop + 390px mobile screens and a three-slide walkthrough with no horizontal overflow or JS errors.
+- Visual/simulation testing does not substitute for a physical multi-device acceptance test on the deployed URL.
+
+
+## Higher-frame photographic water update (October 14, 2026)
+- Updated to the user-provided 4×4, 16-frame water pour sequence, preserving source artwork.
+- Crossfades neighboring frames using authoritative shared fill levels; never resets the displayed cup to empty mid-round.
+- Retains stream-free settled-water frames when the flow stops and side-view camera for watchers.
+- All 28 automated checks pass (the networking integration suite was rerun to resolve an intermittent timeout).
+- Chromium desktop and mobile previews confirm that the 16-frame atlas is visible and positioned correctly.

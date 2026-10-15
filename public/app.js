@@ -76,23 +76,27 @@ function cupScene(level=0,{foam=false,danger=false,pouring=false,jinx='',elapsed
  <div class="stage-bottom"><span class="stage-caption">${hero?'WATCH THE POUR · SIDE VIEW':spilled?'💦 OVERFLOW!':'SIDE VIEW · WATCH CAREFULLY'}</span><span class="stage-mark" aria-hidden="true">✳</span></div></div>`;
  }
  const cls=[...common,'sprite-photoreal',jinx==='above'?'distance':''].join(' ');
- const frame=spriteFrameFor(visualLevel,pouring,elapsed);
- return `<div class="${cls}" data-cup-stage data-camera="overhead" data-sprite-frame="${frame}" style="--visual-level:${visualLevel}">
+ const blend=spriteBlendFor(visualLevel,pouring);
+ return `<div class="${cls}" data-cup-stage data-camera="overhead" data-sprite-frame="${blend.frame}" style="--visual-level:${visualLevel}">
  <div class="cup-scene" role="img" aria-label="Photorealistic overhead view of a measuring cup being filled with water">
  <div class="sprite-marble" aria-hidden="true"></div>
- <div class="sprite-animation" data-pour-sprite style="background-position:${spritePosition(frame)}"><span class="sprite-ripple"></span><span class="sprite-bubble bubble-1"></span><span class="sprite-bubble bubble-2"></span><span class="sprite-bubble bubble-3"></span></div>
+ <div class="sprite-animation" data-pour-sprite style="background-position:${spritePosition(blend.frame,pouring)}"><span class="sprite-next" data-pour-next style="background-position:${spritePosition(blend.next,pouring)};opacity:${blend.mix.toFixed(3)}"></span><span class="sprite-ripple"></span><span class="sprite-bubble bubble-1"></span><span class="sprite-bubble bubble-2"></span><span class="sprite-bubble bubble-3"></span></div>
  </div><div class="stage-bottom"><span class="stage-caption">${hero?'ONE CUP · REAL WATER':spilled?'💦 OVERFLOW!':'OVERHEAD · REMEMBER THE LEVEL'}</span><span class="stage-mark" aria-hidden="true">✳</span></div></div>`;
 }
-function spriteFrameFor(level,flowing,elapsed=0){
+function spriteBlendFor(level,flowing){
  const water=Math.max(0,Math.min(100,Number(level)||0));
- const base=Math.min(6,Math.floor(water/100*7));
- if(!flowing||base===6)return base;
- // Only alternate neighboring photo frames. The underlying water total comes from the server.
- return base+(Math.floor(elapsed/380)%2);
+ // Four rows of sixteen photographic frames while pouring; keep the existing
+ // eight settled frames when stopped so no stream is visible between turns.
+ const last=flowing?14:7; // flowing frame 15 is the stop-motion end cap
+ const progress=water/100*last;
+ const frame=Math.min(last,Math.floor(progress));
+ return {frame,next:Math.min(last,frame+1),mix:progress-frame};
 }
-function spritePosition(frame){
- const n=Math.max(0,Math.min(7,Math.floor(frame)));
- return `${(n%4)*100/3}% ${n>=4?100:0}%`;
+function spriteFrameFor(level,flowing){return spriteBlendFor(level,flowing).frame;}
+function spritePosition(frame,flowing=false){
+ const maximum=flowing?14:7;
+ const n=Math.max(0,Math.min(maximum,Math.floor(frame)));
+ return `${(n%4)*100/3}% ${Math.floor(n/4)*100/(flowing?3:1)}%`;
 }
 function home(){return `<main><section class="hero"><div class="hero-copy"><div class="row wrap"><span class="pill">🎉 YOUR NEW PARTY OBSESSION</span><span class="pill white">2–8 PLAYERS</span></div><h1 style="margin-top:24px">Pour<br/>Decisions.<em>Bad choices.<br/>Great friends.</em></h1><p class="lead">A shared cup. Secret jinxes. Suspicious friends. How much can you pour before the party spills over?</p><div class="hero-buttons"><button class="btn btn-primary" data-open="create">✨ Create a room →</button><button class="btn btn-white" data-open="join">🔑 Join friends</button></div><div class="hero-social"><div class="avatar-stack"><span>🐸</span><span>🦊</span><span>🐻</span><span>🐱</span></div><span>No downloads. No signups. Just chaos.</span></div></div><div class="hero-art"><div class="sticker one">🃏 SECRET JINX!</div><div class="hero-spark">✨</div>${cupScene(58,{hero:true,pouring:true})}<div class="sticker two">💦 DON'T SPILL!</div></div></section><section style="margin-top:18px"><div class="section-heading"><h2>Three steps to trouble.</h2><span class="pill mint">5–10 MIN / GAME</span></div><div class="how-grid"><div class="card how-mini"><span class="num">🃏</span><h3>01. Jinx</h3><p>Secretly sabotage the next player with a weird handicap.</p></div><div class="card how-mini"><span class="num">🫗</span><h3>02. Pour</h3><p>Hold to fill the cup. Add 6+ units. Don't go past 100.</p></div><div class="card how-mini"><span class="num">🕵️</span><h3>03. Guess</h3><p>With 3+ players, guess the hidden jinx for extra points. In 2-player games, duel instead!</p></div></div></section></main>`;}
 function authScreen(){const joining=state.view==='join';return `<div class="auth-layout"><button class="mini-btn" data-home>← Back</button><div style="margin-top:21px"><span class="pill">${joining?'🔑 THE MORE, THE MESSIER':'✨ START THE PARTY'}</span></div><h2 style="margin-top:14px">${joining?'Join the chaos.':'Your kitchen. Your rules.'}</h2><p class="muted strong" style="line-height:1.5">${joining?'Enter your friends’ four-letter room code.':'Create a room, invite your crew, and get pouring.'}</p><div class="card auth-card"><form id="join-form"><label class="field-label" for="name-field">Your nickname</label><input id="name-field" class="field" maxlength="12" placeholder="e.g. Captain Splash" value="${escapeHTML(state.formName)}" autocomplete="nickname" required/>${joining?`<label class="field-label form-label-space" for="code-field">Room code</label><input id="code-field" class="field code" inputmode="latin" pattern="[A-Za-z]{4}" maxlength="4" placeholder="ABCD" value="${escapeHTML(state.formCode)}" required />`:''}<div class="form-label-space"><span class="field-label">Pick your game face</span><div class="avatar-picker">${AVATARS.map(a=>`<button class="avatar-choice ${a===state.avatar?'selected':''}" type="button" data-avatar="${a}" aria-label="Avatar ${a}" aria-pressed="${a===state.avatar}">${a}</button>`).join('')}</div></div><button class="btn btn-primary full" style="margin-top:23px" data-submit type="submit">${joining?'🚀 Join room →':'🫗 Create room →'}</button></form><div class="divider-text">or</div><button class="btn btn-white full btn-small" data-open="${joining?'create':'join'}">${joining?'Create your own room instead':'Have a room code? Join friends'}</button></div></div>`;}
@@ -172,12 +176,13 @@ function updateVitals(){const r=state.room;if(!r)return;
    const active=!!t.flowing;
    stage.classList.toggle('pouring',active&&r.phase==='pour');
    if(stage.dataset.camera==='overhead'){
-     const frame=spriteFrameFor(visual,active&&r.phase==='pour',t.elapsedMs||0);
+     const flowing=active&&r.phase==='pour';
+     const blend=spriteBlendFor(visual,flowing);
      const sprite=stage.querySelector('[data-pour-sprite]');
-     if(sprite&&stage.dataset.spriteFrame!==String(frame)){
-       sprite.style.backgroundPosition=spritePosition(frame);
-       stage.dataset.spriteFrame=String(frame);
-     }
+     const next=stage.querySelector('[data-pour-next]');
+     if(sprite){sprite.style.backgroundPosition=spritePosition(blend.frame,flowing);}
+     if(next){next.style.backgroundPosition=spritePosition(blend.next,flowing);next.style.opacity=String(blend.mix);}
+     stage.dataset.spriteFrame=String(blend.frame);
    }
    stage.classList.toggle('lights-dark',meIsPourer&&t.jinx==='lights'&&t.elapsedMs>1500);
    stage.classList.toggle('shaky',meIsPourer&&t.jinx==='shaky'&&active);

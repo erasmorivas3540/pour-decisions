@@ -35,30 +35,49 @@ test('active pourer sees overhead glass; rival sees side; roles reverse next tur
 
 test('side camera has continuously updated water height; overhead shows synced photographic frames',()=>{
  const src=section('function updateVitals(){','let audioCtx=null;');
- const helpers=section('function spriteFrameFor(','function home(){');
+ const helpers=section('function spriteBlendFor(','function home(){');
  for(const camera of ['side','overhead']){
   const water={style:{setProperty(){}}};
-  const sprite={style:{backgroundPosition:''}};
-  const stage={dataset:{camera,spriteFrame:'0'},style:{setProperty(){}},classList:{toggle(){}},querySelector:selector=>selector==='[data-water]'?(camera==='side'?water:null):selector==='[data-pour-sprite]'?sprite:null};
+  const sprite={style:{backgroundPosition:''}};const next={style:{backgroundPosition:'',opacity:''}};
+  const stage={dataset:{camera,spriteFrame:'0'},style:{setProperty(){}},classList:{toggle(){}},querySelector:selector=>selector==='[data-water]'?(camera==='side'?water:null):selector==='[data-pour-sprite]'?sprite:selector==='[data-pour-next]'?next:null};
   const context={state:{room:{phase:'pour',level:40,turn:{pourerId:'other',foam:false,flowing:false,started:false,dripping:false,elapsedMs:0}},held:false},document:{querySelectorAll:()=>[]},$:selector=>selector==='[data-cup-stage]'?stage:null,relativeTimer:()=>0,seconds:()=>'',performance:{now:()=>0},sound:()=>{},Math};
   vm.createContext(context);vm.runInContext(helpers+'\n'+src+'\nupdateVitals()',context);
   if(camera==='side')assert.equal(water.style.height,'40%');
-  else {assert.equal(stage.dataset.spriteFrame,'2');assert.equal(sprite.style.backgroundPosition,'66.66666666666667% 0%');}
+  else {assert.equal(stage.dataset.spriteFrame,'2');assert.equal(sprite.style.backgroundPosition,'66.66666666666667% 0%');assert.equal(next.style.opacity,'0.8000000000000003');}
  }
 });
 
 test('photo frames advance with water, and no numerical cup markers reveal its level',()=>{
- const helper=section('function spriteFrameFor(','function home(){');
+ const helper=section('function spriteBlendFor(','function home(){');
  const context={Math};vm.createContext(context);vm.runInContext(helper+'\nthis.pick=spriteFrameFor;this.pos=spritePosition;',context);
  assert.equal(context.pick(0,false),0);
  assert.equal(context.pick(48,false),3);
- assert.equal(context.pick(100,false),6);
- assert.equal(context.pick(48,true,10),3);
- assert.equal(context.pick(48,true,400),4);
+ assert.equal(context.pick(100,false),7);
+ assert.equal(context.pick(48,true,10),6);
+ assert.equal(context.pick(48,true,400),6);
  assert.equal(context.pos(6),'66.66666666666667% 100%');
  const pour=screenFor('player1');
  assert.match(pour,/data-pour-sprite/);
  assert.doesNotMatch(pour,/center-readout|class="measure|class="glass-scale|Added 3 \/ 6/);
  const spectator=screenFor('player2');
  assert.doesNotMatch(spectator,/class="glass-scale|75<\/span>|50<\/span>|25<\/span>/);
+});
+
+test('16 photographic frames progress with fill and blend smoothly without advancing backwards',()=>{
+ const helpers=section('function spriteBlendFor(','function home(){');
+ const context={Math};vm.createContext(context);vm.runInContext(helpers+'\nthis.blend=spriteBlendFor;this.pos=spritePosition;',context);
+ const pick=context.blend,pos=context.pos;
+ assert.equal(pick(0,true).frame,0);
+ assert.equal(pick(50,true).frame,7);
+ assert.equal(pick(100,true).frame,14);
+ assert.equal(pick(100,true).next,14);
+ assert.equal(pos(0,true),'0% 0%');
+ assert.equal(pos(6,true),'66.66666666666667% 33.333333333333336%');
+ assert.equal(pos(14,true),'66.66666666666667% 100%');
+ assert.equal(pos(7,false),'100% 100%');
+ assert.ok(pick(41,true).mix>0&&pick(41,true).mix<1);
+ for(let n=1;n<=100;n++)assert.ok(pick(n,true).frame>=pick(n-1,true).frame);
+ const pour=screenFor('player1');
+ assert.match(pour,/data-pour-next/);
+ assert.doesNotMatch(pour,/center-readout|class="measure|class="glass-scale/);
 });

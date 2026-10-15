@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const root=new URL('../public/',import.meta.url);
-for(const name of ['overhead-water-sprites.webp','overhead-water-settled.webp']){
+for(const name of ['overhead-water-sprites.webp','overhead-water-settled.webp','overhead-water-sprites-16.webp']){
  test(`photo atlas ${name} is packaged as a valid WebP file`,()=>{
   const bytes=readFileSync(new URL(`assets/${name}`,root));
   assert.ok(bytes.length>10000,'asset should contain actual photographic image data');
@@ -15,10 +15,19 @@ test('overhead photographic sprites are served with the correct MIME and no nume
  const css=readFileSync(new URL('style.css',root),'utf8');
  const app=readFileSync(new URL('app.js',root),'utf8');
  const server=readFileSync(new URL('../server.js',import.meta.url),'utf8');
- assert.match(css,/\.sprite-photoreal\.pouring \.sprite-animation\{background-image:url\('\/assets\/overhead-water-sprites.webp'\)/);
+ assert.match(css,/\.sprite-photoreal\.pouring \.sprite-animation\{background-image:url\('\/assets\/overhead-water-sprites-16.webp'\)/);
  assert.match(css,/\.sprite-photoreal \.sprite-animation\{[^}]*overhead-water-settled.webp/);
- assert.match(app,/data-pour-sprite/);
+ assert.match(app,/data-pour-sprite/);assert.match(app,/data-pour-next/);
+ assert.match(css,/background-size:400% 400%/);
  assert.doesNotMatch(app,/Added \$\{Math\.round\(t\.added\)\} \/ 6 minimum/);
  assert.doesNotMatch(app,/class="glass-scale"/);
  assert.match(server,/'\.webp':'image\/webp'/);
+});
+
+test('the 16-frame atlas has an actual 4x4 WebP grid rather than an eight-frame replay',()=>{
+ const bytes=readFileSync(new URL('assets/overhead-water-sprites-16.webp',root));
+ assert.ok(bytes.length>100000,'a real photographic grid is bundled');
+ const app=readFileSync(new URL('app.js',root),'utf8');
+ assert.match(app,/const last=flowing\?14:7/);
+ assert.match(app,/spriteBlendFor/);
 });
