@@ -1,56 +1,40 @@
 # Pour Decisions — Verification report
 
-**Build:** 1.0.0 · October 14, 2026
+## Current status — October 14, 2026
 
-## Completed checks
+- **Version:** 1.0.0
+- **Current automated suite:** **28 passing tests**, measured with `npm test` on Node.js 22.16.0 on October 14, 2026.
+- **Syntax validation:** `npm run check` also checks `server.js`, `game.js`, and `public/app.js` with `node --check`.
+- **Coverage:** Room creation, authorization, 2–8 player seating, spectators, hidden jinxes, all 13 jinx definitions and effects, server-side water and scoring, timers, spills, sudden-death ties, rematches, disconnections, two- and three-client live HTTP/SSE integration, tutorial readiness, and sprite/camera behavior.
+- **Deployment:** The game has a public Render address: https://pour-decisions-ozbh.onrender.com.
+- **Boundaries:** This test count is local automation, not physical-device acceptance. Open rooms are in memory and are lost on server restart. Optional Chromium/Playwright scripts are outside `npm test`.
 
-- `npm run check`: Node syntax checks plus **13 passing automated tests**.
-- Core engine: room creation, names and tokens; host authorization; starting with 2 people; settings 3/5/7; mandatory 6 units; synchronized scoring and guesses; spilling and cup resets; sabotage bonus; late spectator joins; rematch; host transfer; pause/reconnect; ties with same-jinx sudden death.
-- Tested **all 12 jinx identifiers**: Fire Hose/ Eyedropper rates, Ketchup delay, Heavy Arm delayed presses, Opposite Day inverted input, Butterfingers splash, Shaky bursts, Fog/Tunnel blurred or clipped presentation values, Lag Goggles history, Lights Out blacked-out cup, Soda Can foam flag.
-- HTTP integration: launched a real local service with **three concurrent independent streaming connections**; started a room, began a round, poured over the network, verified snapshots and minimum filling, checked guesser state does not expose secret jinx data, submitted a valid guess, verified +5 score, rejected repeated guesses and forged authentication.
-- Headless Chromium **offline visual rendering** of the production HTML/CSS/JS: home, invite lobby, pourer, guessing, reveal, game over. Eight screenshot assets generated. Checked 390px mobile and 1200px desktop layouts; no horizontal overflow. UI navigation and help modal were exercised in the offline preview.
-- Source scan: no external packages, no remote dependencies, and all game actions validated server-side.
+## Dated changelog (historical releases)
 
-## Fixes made during review
+### October 14, 2026 — Initial multiplayer engine and regression review
 
-1. Prevented failed room creation from reserving an unused room code.
-2. Fixed mandatory-drip completion after the standard pour duration expires.
-3. Corrected scoring of wrong guesses (including spills), delayed-vision rendering, and dynamic visual feedback.
-4. Prevented fast tap/release requests from arriving out of order over real networks.
-5. Added a short refresh grace period before host handoff, preserving the host when reconnecting quickly.
-6. Kept original join order for host handoff while reshuffling independent turn order on rematch.
-7. Restricted sudden-death jinx selection to fair, normal-rate effects and preserved the same effect for all finalists.
-8. Fixed the CSP to permit the game's inline element styles, and removed a hidden toast artifact from full-page screenshots.
+- Added server-owned room state, authentication, water physics, scoring, multiplayer jinx guessing, rematches, host transfer, and pause/reconnect logic.
+- Fixed unused code reservation after failed creation, mandatory-drip completion, wrong-guess scoring, out-of-order control messages, host-refresh grace, rematch ordering, sudden-death parity, inline-style CSP, and screenshot toast artifacts.
+- Earlier 12-jinx and test counts refer to an older build; they are not current results.
 
-## What was *not* verified from this environment
+### October 14, 2026 — Two-player support
 
-- No public deployment URL was created: user-owned hosting account/connection required.
-- Browser policy blocked `http://localhost` navigation in Chromium; therefore, a genuine 3-browser, full-UI end-to-end run in this container was not possible. The game protocol **was** tested end-to-end using 3 live HTTP/SSE clients. UI was separately rendered and reviewed in Chromium from the shipped files.
-- No physical iPhone or Android was connected; run the checklist in `SUBMISSION.md` after deployment.
-- Because room data is in memory, durability across server restarts and multi-instance scaling is not supported (not required for a short live party game, but relevant to hosting).
+- Reduced minimum connected seats from three to two. Two-player matches skip guessing and alternate jinx/pour roles; larger rooms still include guessing.
+- Added two-player HTTP/SSE and disconnect/pause tests.
 
-**Conclusion:** Source is launchable on a single Node service and passed the automated tests above. Internet deployment and device playtesting remain external steps.
+### October 14, 2026 — Patient tutorial and slower pouring
 
-## October 14, 2026 — two-player support
+- Removed the rule-screen countdown; connected seated players must each press Ready.
+- Reduced standard flow to 3 units/second and increased ordinary maximum pour duration to 12 seconds.
+- Added illustrated tutorial cards, richer water effects, and optional visual-review scripts.
 
-- Minimum connected players changed from 3 to **2** for game start and automatic pause/resume checks.
-- When only two players are active, jinx and pour stages alternate with immediate reveal; guessing is skipped because the jinxer is the other participant. The original guessing rounds remain for groups of three or more.
-- Home screen, lobby readiness button, waiting seats and instructions updated for **2–8 players**.
-- Test suite expanded to **16 passing tests**, including two-player engine coverage, reconnect/pause behavior, head-to-head scoring, and an actual two-client HTTP/SSE integration test. Three-player live integration and all 12 jinxes remain covered.
+### October 14, 2026 — Overhead photography and 16-frame animation
 
+- Added **5 Feet Above**, bringing the jinx total to **13**.
+- Split cameras: overhead for the active pourer and side view for everyone watching, without numerical fullness indicators during pouring.
+- Added the user-provided 4×4 photographic atlas with level-based frame blending and a separate settled-water atlas.
+- Added regression checks for camera assignment, sprite assets, and frame progression.
 
-## UX & pacing release — October 14, 2026
+## Testing boundaries
 
-- **19/19 automated Node tests passed**, including two-player and three-player network streaming integrations, and three new coverage cases for indefinite rules reading, rate scaling, and slow minimum completion.
-- The normal server-authoritative water rate is now **3 units/second** versus 12 before; Fire Hose 9/sec, Eyedropper 1/sec, Ketchup burst 12/sec, minimum drip 3/sec; normal hold duration 12 seconds, Eyedropper 8 seconds.
-- Starting rules no longer have a timer (`deadline=0`) or an auto-advance branch. Every connected seated player must tap **I’m ready**. Tested after 3+ simulated minutes and partial readiness.
-- Redrew the kitchen scene, bottle, water shading, waves, bubbles, cup measurements, danger cues, and illustrated tutorial slides. Offline Chromium verified desktop + 390px mobile screens and a three-slide walkthrough with no horizontal overflow or JS errors.
-- Visual/simulation testing does not substitute for a physical multi-device acceptance test on the deployed URL.
-
-
-## Higher-frame photographic water update (October 14, 2026)
-- Updated to the user-provided 4×4, 16-frame water pour sequence, preserving source artwork.
-- Crossfades neighboring frames using authoritative shared fill levels; never resets the displayed cup to empty mid-round.
-- Retains stream-free settled-water frames when the flow stops and side-view camera for watchers.
-- All 28 automated checks pass (the networking integration suite was rerun to resolve an intermittent timeout).
-- Chromium desktop and mobile previews confirm that the 16-frame atlas is visible and positioned correctly.
+`npm test` includes Node engine tests and actual HTTP/SSE integration tests. Optional browser scripts in `tests/browser_smoke.py` and `tests/render_preview.py` require Chromium/Playwright; they are not in the 28-test total. Real-device multiplayer play remains a separate acceptance check.

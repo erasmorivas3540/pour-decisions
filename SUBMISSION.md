@@ -4,7 +4,7 @@
 
 **Project cover image:** `artwork/cover.png` (1200×820 game UI screenshot preview, generated using the real shipped interface and representative sample room state)
 
-**Public project link:** `https://YOUR-DEPLOYED-HOSTNAME`  ← replace after deployment; this is NOT a live address.
+**Public project link:** https://pour-decisions-ozbh.onrender.com
 
 ## Project description (copy to Handshake)
 
@@ -14,16 +14,16 @@
 
 **Who it's for:** Friend groups, dorms, student clubs, remote hangouts, and anyone who wants a quick 5–10 minute game together without accounts or apps.
 
-**How I guided and debugged the AI build:** I supplied a detailed multiplayer game specification, defined the role-specific gameplay rules and visual direction, and iterated through server-authority tests, all-12-jinx edge cases, a three-client live-sync integration test, and mobile/desktop screenshot review to fix bugs before packaging.
+**How I guided and debugged the AI build:** I supplied a detailed multiplayer game specification, defined the role-specific gameplay rules and visual direction, and iterated through server-authority tests, all-13-jinx edge cases, a three-client live-sync integration test, and mobile/desktop screenshot review to fix bugs before packaging.
 
 ## Final submission checklist
 
 - [x] Title, description, and cover image prepared.
 - [x] Multiplayer source code created and locally tested with 3 simultaneous streaming clients.
-- [x] Reconnection, scorekeeping, hidden jinxes, and all 12 jinx families have automated coverage.
-- [ ] Deploy to a publicly accessible HTTPS URL and replace the placeholder above.
+- [x] Reconnection, scorekeeping, hidden jinxes, and all 13 jinxes have automated coverage.
+- [x] Deploy to a publicly accessible HTTPS URL on Render.
 - [ ] Test on at least two physical devices (iPhone, Android, laptop) simultaneously.
 - [ ] Ask someone new to follow the instructions without your assistance.
 - [ ] Submit in Handshake's **Create a Multiplayer Game** mission by **October 30, 2026, 11:59 PM PT**.
 
-*The public URL, physical-device check, and Handshake submission require actions outside the build container and are not represented as completed.*
+*Physical-device acceptance checks and Handshake submission remain external steps.*
