@@ -6,7 +6,9 @@ import vm from 'node:vm';
 const source=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const section=(start,end)=>{
   // Locate the same named declarations regardless of spacing after parentheses.
-  const token=(marker)=>marker.slice(0,marker.indexOf('(')+1);
+  const token=(marker)=>marker.startsWith('function ')
+    ?marker.slice(0,marker.indexOf('(')+1)
+    :marker.slice(0,marker.indexOf('=')).trim();
   const a=source.indexOf(token(start));
   const b=source.indexOf(token(end),a+token(start).length);
   assert.ok(a>=0&&b>a,`Source functions ${start} / ${end} must be present`);
