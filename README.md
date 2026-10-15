@@ -18,7 +18,7 @@ No runtime dependencies, database, or API keys required. Development tooling is 
 npm start
 ```
 
-Open **http://localhost:3000** in a browser. Create a room, share the four-letter code, and have at least one additional player join. Locally, use two **independent browser profiles** (or use `?room=CODE&new=1` in separate tabs to force a new seat). The host can start once two seated players are connected.
+Open **http://localhost:3000** in a browser. Create a room and share the four-letter code with a friend, or have the host add a bot in the lobby. Games need at least two seated players, including bots. Locally, use two **independent browser profiles** (or use `?room=CODE&new=1` in separate tabs to force a new seat). The host can start once two seated players are present (human clients connected and bots occupying engine-managed seats).
 
 **Important:** localhost is only accessible from your machine. To meet the contest's publicly accessible URL requirement, deploy this Node server to an Internet hosting platform, as described below.
 
@@ -41,7 +41,7 @@ Two players can now start immediately. One pours while the other watches. After 
 
 ## How to play
 
-**No rules timer:** At the beginning of a game, every player can read all three illustrated rule slides for as long as they need. The server starts gameplay only when all connected players have tapped **I’m ready**. There is no automatic rules-screen timeout.
+**No rules timer:** At the beginning of a game, every player can read all three illustrated rule slides for as long as they need. The server starts gameplay only when all connected human players have tapped **I’m ready**. Bots are ready automatically. There is no automatic rules-screen timeout.
 
 1. **Jinx:** After the first turn, the previous pourer picks 1 of 3 secret jinx cards for the next pourer. Only those two see the true jinx before reveal. The first turn gets a randomly selected jinx.
 2. **Pour:** Hold to pour and release to finish. Each turn adds at least 6 units, and going over 100 spills the cup. Start within 10 seconds; each active pour lasts up to 12 seconds (Eyedropper lasts up to 8). Normal pouring is 3 units/second, four times slower than the original build; Fire Hose is 9 units/second and Eyedropper is 1 unit/second. **Opposite Day** automatically pours and holding pauses the flow; press **Finish this pour** to stop it.
@@ -55,26 +55,49 @@ During every live pour, **the active pourer sees the cup from overhead**, while 
 ## Features
 
 - Four-letter room code, invite URLs, nicknames up to 12 characters, emoji avatars, duplicate-name numbering.
-- 2–8 seated players and optional spectators, join in progress, guessing from the following turn and entry into player rotation at the next cup if there is a seat.
+- 2–8 seated players, including up to three **🤖 host-managed bots**, and optional spectators; join in progress, guessing from the following turn, and entry into the rotation at the next cup if there is a seat.
 - **All 13 jinxes**: Foggy Glasses, Tunnel Vision, Lag Goggles, Lights Out, 5 Feet Above, Shaky Hands, Heavy Arm, Opposite Day, Butterfingers, Fire Hose, Eyedropper, Ketchup Bottle, Soda Can.
 - Server-owned 20 Hz cup updates, hidden role data, authoritative scoring, card selection and timers, anti-duplicate-guess checks, and per-session credentials.
+- Single-use, 30-second SSE tickets requested by authenticated POST and per-player action/ticket rate limits (separate per-IP creation/join limits).
+- **▶ Watch the spill** on reveal: side-view replay at 1×/2× with jinx events and the exact final water level. Replay is limited to 400 samples per turn, hidden until reveal, and cleared on rematch.
 - Reconnection into the same seat on refresh, minimum drip on disconnect, 2-second grace for a refreshing host, host transfer after departure, 2-minute pause after fewer than 2 players remain, rematch and same-room replay.
 - Three illustrated instruction cards with unlimited reading time and per-player readiness, overhead pourer and side-view spectator cameras with synchronized slow water, mobile-friendly design, reduced motion, optional sounds, SSE updates, results, leaderboards, awards, and screenshot cover art.
 - No third-party **runtime** dependencies or account sign-ins.
 
+## Engineering highlights
+
+- **Server authority:** `game.js` owns the cup physics, scores, timers and engine-controlled bots. The 50 ms server tick advances the shared game at 20 Hz.
+- **Secure, reconnectable SSE:** `POST /api/stream-ticket` authenticates seat credentials in the request body and issues a 30-second, single-use capability for `GET /api/stream?ticket=…`. Every reconnect requests a new ticket; the durable token is never in the stream URL.
+- **Privacy and bounded replays:** `game.state(room, player)` projects each viewer's allowed state. It hides unrevealed jinxes and gives out the latest spill's capped replay only during reveal.
+- **Verification:** Prettier and `npm run check` run in CI on Node 20 and 22; a separate HTTP/SSE load harness measures complete concurrent matches. Details: [engineering notes](docs/ENGINEERING_NOTES.md) and [measured load tests](docs/LOAD_TEST.md).
+
 ## Architecture
 
-```text
-Browser / phone                 Node.js service
-─────────────────              ──────────────────────────────────
-POST /api/create   ──────────>  Create room + authenticated seat
-POST /api/join     ──────────>  Join seat or spectator
-GET /api/stream    <──────────  Personalized SSE snapshots (20 Hz while pouring)
-POST /api/action   ──────────>  Validate actor, phase and payload; update room
-                               Tick timers, water physics, guesses and scores
+```mermaid
+flowchart LR
+  B["Browser / human player"]
+  H["Node HTTP + SSE server<br/>server.js"]
+  T["Server 50 ms tick<br/>20 Hz"]
+  E["Authoritative GameEngine<br/>game.js"]
+  R["Per-room replay buffer<br/>400 samples maximum, last spill"]
+  F["Per-player state projection<br/>game.state(room, viewer)"]
+
+  B -->|"POST /api/create or /api/join"| H
+  B -->|"POST /api/stream-ticket<br/>ID + token in request body"| H
+  H -->|"Single-use ticket (30s)"| B
+  B -->|"GET /api/stream?ticket=..."| H
+  B -->|"POST /api/action"| H
+  H -->|"Authenticate, validate, apply"| E
+  H -->|"Call every 50 ms"| T
+  T -->|"Physics, timers, bot decisions"| E
+  E -->|"Record pour and events"| R
+  E -->|"Current room state"| F
+  R -.->|"Only during spill reveal"| F
+  F -->|"Private snapshot per listener"| H
+  H -->|"Server-Sent Events"| B
 ```
 
-**Sensitive role data is not broadcast** to guessers. A guessed jinx is only available in a viewer's state after reveal; the true option appears mixed with three decoys. Players each have an unguessable ID + bearer token in their own browser storage. SSE is authorized by that token, not merely the room code. Note: the visual foam effect of _Soda Can_ is visible to everyone, as specified.
+The server consumes each stream ticket exactly once and sends a separately **filtered** snapshot to each authenticated listener; the room code alone does not authorize a stream. Secret jinx details and replay samples never reach guessers before reveal. Bots act inside the engine rather than opening HTTP connections. Rooms and the latest spill replay live in one Node process's memory, so a restart clears them. The visual foam effect of _Soda Can_ remains visible to everyone, as designed.
 
 ### Project files
 
@@ -82,6 +105,12 @@ POST /api/action   ──────────>  Validate actor, phase and pa
 - `game.js`: game room engine, rules, authority and timed effects.
 - `public/`: web UI (HTML, CSS, JS) and favicon.
 - `tests/engine.test.js`: game/edge-case regression tests.
+- `tests/bots.test.js`: bot management, game completion, turn permissions and room expiry.
+- `tests/replay.test.js`: replay secrecy, cap, final level, events and UI checks.
+- `tests/load.mjs`: separate real HTTP/SSE load benchmark (excluded from `npm test`).
+- `docs/ENGINEERING_NOTES.md`: defect log and regression evidence.
+- `docs/LOAD_TEST.md`: dated load-test methods and measured results.
+- `.github/workflows/ci.yml`: Node 20 and 22 formatting and tests.
 - `tests/pacing-and-guide.test.js`: explicit no-timeout onboarding, all-player readiness, slow-flow rate and minimum-trickle regression tests.
 - `tests/integration.test.js`: three actual simultaneous HTTP/SSE clients and private-info checks.
 - `tests/render_preview.py`: offline Chromium visual previews of the shipped UI; generates screenshots in `artwork/`.
@@ -96,7 +125,17 @@ POST /api/action   ──────────>  Validate actor, phase and pa
 npm run check
 ```
 
-This runs syntax checks and 28 Node tests, including a fresh local server and three independent streaming clients. Optional UI screenshot test if Python Playwright and Chromium are available:
+This runs syntax checks and **39 Node tests** (verified October 15, 2026), including real HTTP/SSE integration clients, bot gameplay, replay privacy, and rate-limit coverage. CI runs the checks on Node 20 and 22.
+
+Run `npx prettier --check .` to verify formatting. The separate load test defaults to 20 concurrent full games, each with two human HTTP/SSE clients and two bots:
+
+```bash
+npm run loadtest
+```
+
+Load testing is excluded from `npm test` and `npm run check`. See the measured results in [docs/LOAD_TEST.md](docs/LOAD_TEST.md).
+
+Optional UI screenshot test if Python Playwright and Chromium are available:
 
 ```bash
 python tests/render_preview.py
@@ -114,7 +153,7 @@ The hosted page should be checked on a real iPhone, Android, and laptop before f
 ## Limitations / operations
 
 - Open rooms do **not** persist across service restarts or deployment changes; server instances are not horizontally shared.
-- Rooms with no connected users close after 30 minutes of inactivity. A temporary network loss is recoverable while the same backend process remains online.
+- Rooms with no connected human users close after 30 minutes of inactivity; engine-owned bots do not keep abandoned rooms alive. A temporary network loss is recoverable while the same backend process remains online.
 - Keep the service up for the game and avoid very aggressive platform idle timeouts. If the service requires an SSE idle/response timeout, configure it above a few minutes; streaming emits state at least four times per second.
 - This is an age-neutral cartoon game using water, not actual drinking.
 - The production service is already deployed to Render under the owner’s account. A Render restart or free-plan spin-down can reset in-progress rooms.
