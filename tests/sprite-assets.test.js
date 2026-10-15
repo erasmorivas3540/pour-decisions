@@ -23,7 +23,10 @@ test('overhead photographic sprites are served with the correct MIME and no nume
     css,
     /\.sprite-photoreal\.pouring\s+\.sprite-animation\s*\{\s*background-image:\s*url\('\/assets\/overhead-water-sprites-16\.webp'\)/,
   );
-  assert.match(css, /\.sprite-photoreal\s+\.sprite-animation\s*\{[^}]*overhead-water-settled\.webp/);
+  assert.match(
+    css,
+    /\.sprite-photoreal\s+\.sprite-animation\s*\{[^}]*overhead-water-settled\.webp/,
+  );
   assert.match(app, /data-pour-sprite/);
   assert.match(app, /data-pour-next/);
   assert.match(css, /background-size:\s*400%\s+400%/);
