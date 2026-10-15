@@ -19,7 +19,7 @@ The test launched `server.js` on an ephemeral localhost port with `GAME_TIME_SCA
 | HTTP `POST /api/action` requests            |          1,551 |
 | Failed room runs / request errors           |              0 |
 | SSE state messages observed                 |         33,326 |
-| Action-to-matching-SSE latency samples      |          1,554 |
+| Action-to-matching-SSE latency samples      |          1,551 |
 | Latency p50                                 |        1.56 ms |
 | Latency p95                                 |       11.30 ms |
 | Latency max                                 |       46.14 ms |
