@@ -120,6 +120,7 @@ test('side camera has continuously updated water height; overhead shows synced p
       seconds: () => '',
       performance: { now: () => 0 },
       sound: () => {},
+      updateReplay: () => {}, // Replay UI is outside the live camera's vitals scope.
       Math,
     };
     vm.createContext(context);

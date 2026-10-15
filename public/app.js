@@ -43,6 +43,7 @@ const state = {
   lastPhase: '',
   lastTurn: 0,
   soundTime: 0,
+  replayViewing: null,
   serverAt: 0,
   receivedAt: 0,
 };
@@ -177,6 +178,7 @@ async function connect() {
   };
 }
 function onPhase(room, old) {
+  if (room.phase === 'lobby') state.replayViewing = null;
   if (room.phase === 'howto') state.howStep = 0;
   if (room.phase === 'reveal') {
     if (room.reveal?.spilled) {
@@ -188,6 +190,7 @@ function onPhase(room, old) {
   if (old?.phase === 'pour' && room.phase !== 'pour') state.held = false;
 }
 function leaveRoom() {
+  state.replayViewing = null;
   streamAttempt++;
   clearTimeout(reconnectTimer);
   state.source?.close();
@@ -390,7 +393,7 @@ function revealScreen() {
   const j = t.jinxDetail,
     guesses = Object.entries(v.guesses || {}),
     isSpill = v.spilled;
-  return `<div class="gamehead center"><span class="pill">${v.duel ? '⚔️ SHOWDOWN RESULT' : '🎭 THE BIG REVEAL'}</span><h2 style="margin-top:13px" class="reveal-title ${isSpill ? 'spill' : 'safe'}">${isSpill ? '💦 SPILLED!' : '✨ CLEAN POUR!'}</h2><p>${nameFor(v.pourerId)} ${isSpill ? 'went a little too far…' : 'kept their cool!'}</p></div><div class="game-grid"><section><div class="card"><div class="row between"><span class="pill blue">ADDED +${v.added} UNITS</span>${countdown()}</div><div class="results-cup">${cupScene(Math.min(v.level, 100), { spilled: isSpill, danger: isSpill, camera: 'side' })}</div><div class="center"><span class="eyebrow muted">THE SECRET WAS</span><div class="reveal-jinx"><span>${j?.icon || '🃏'}</span><div><div>${j?.name || 'Unknown'}</div><small>${j?.mult || 1}× MULTIPLIER</small></div></div></div>${
+  return `<div class="gamehead center"><span class="pill">${v.duel ? '⚔️ SHOWDOWN RESULT' : '🎭 THE BIG REVEAL'}</span><h2 style="margin-top:13px" class="reveal-title ${isSpill ? 'spill' : 'safe'}">${isSpill ? '💦 SPILLED!' : '✨ CLEAN POUR!'}</h2><p>${nameFor(v.pourerId)} ${isSpill ? 'went a little too far…' : 'kept their cool!'}</p></div><div class="game-grid"><section><div class="card"><div class="row between"><span class="pill blue">ADDED +${v.added} UNITS</span>${countdown()}</div><div class="results-cup">${cupScene(Math.min(v.level, 100), { spilled: isSpill, danger: isSpill, camera: 'side' })}</div>${isSpill && r.replay?.samples?.length ? '<div class="center" style="margin:14px 0"><button class="btn btn-primary" data-replay-open>▶ Watch the spill</button></div>' : ''}<div class="center"><span class="eyebrow muted">THE SECRET WAS</span><div class="reveal-jinx"><span>${j?.icon || '🃏'}</span><div><div>${j?.name || 'Unknown'}</div><small>${j?.mult || 1}× MULTIPLIER</small></div></div></div>${
     v.duel
       ? '<div class="cue">Each finalist pours from 85 with the same jinx. The safest, fullest pour wins.</div>'
       : `${t.headToHead ? '<div class="cue" style="margin-top:18px">⚔️ Two-player duel — no guessing bonuses. Swap roles next turn!</div>' : `<div style="margin-top:19px"><h3>🕵️ Detective results</h3>${guesses.length ? guesses.map(([id, guess]) => `<div class="guess-result"><span>${avatarFor(id)} ${nameFor(id)} guessed ${escapeHTML(guess.replaceAll('-', ' '))}</span><span class="delta ${guess === v.jinx ? '' : 'negative'}">${guess === v.jinx ? '+5 ✓' : '✕'}</span></div>`).join('') : '<p class="muted" style="margin-top:10px">No guesses this round.</p>'}</div>`}<h3 style="margin-top:20px">Points this turn</h3>${
@@ -447,6 +450,111 @@ function game() {
     }[r.phase] || lobby;
   return `<div>${pauseBanner()}${content()}</div>`;
 }
+function replayFrameAt(replay, elapsed) {
+  const samples = replay.samples || [];
+  if (!samples.length || elapsed >= samples.at(-1).t)
+    return { level: replay.finalLevel, pouring: false };
+  if (elapsed <= samples[0].t) return samples[0];
+  let low = 0,
+    high = samples.length - 1;
+  while (low + 1 < high) {
+    const mid = (low + high) >> 1;
+    if (samples[mid].t <= elapsed) low = mid;
+    else high = mid;
+  }
+  const from = samples[low],
+    to = samples[high];
+  const fraction = (elapsed - from.t) / (to.t - from.t || 1);
+  return { level: from.level + (to.level - from.level) * fraction, pouring: from.pouring };
+}
+function replayElapsed(view) {
+  const duration = view.data.samples.at(-1)?.t || 0;
+  if (state.reduceMotion) return duration;
+  return Math.min(duration, view.offset + (performance.now() - view.startedAt) * view.speed);
+}
+function openReplay() {
+  const r = state.room;
+  if (r?.phase !== 'reveal' || !r.reveal?.spilled || !r.replay?.samples?.length) return;
+  state.replayViewing = {
+    data: r.replay,
+    pourerName: r.players.find((p) => p.id === r.replay.pourerId)?.name || 'Player',
+    jinxName: r.turn?.jinxDetail?.name || r.replay.jinx,
+    offset: 0,
+    speed: 1,
+    startedAt: performance.now(),
+  };
+  state.renderKey = '';
+  render();
+}
+function replayOverlay() {
+  const view = state.replayViewing;
+  if (!view) return '';
+  const first = view.data.samples[0];
+  const duration = view.data.samples.at(-1)?.t || 0;
+  const level = state.reduceMotion ? view.data.finalLevel : first.level;
+  const control = state.reduceMotion
+    ? '<span class="muted">Reduced motion · final frame</span>'
+    : '<button class="btn btn-white btn-small" data-replay-speed>Speed: ' +
+      view.speed +
+      '× · toggle</button>';
+  return (
+    '<div class="replay-shade" role="dialog" aria-modal="true" aria-label="Watch the spill replay">' +
+    '<div class="replay-panel"><div class="row between"><div><h2>💦 Spill replay</h2>' +
+    '<p class="muted">' +
+    escapeHTML(view.pourerName) +
+    ' · ' +
+    escapeHTML(view.jinxName) +
+    '</p></div><button class="mini-btn" data-replay-close aria-label="Close replay">✕</button></div>' +
+    '<div class="replay-stage">' +
+    cupScene(level, { camera: 'side' }) +
+    '</div>' +
+    '<div class="row between replay-controls"><span class="pill blue" data-replay-time>0.0 / ' +
+    (duration / 1000).toFixed(1) +
+    's</span><strong data-replay-level>' +
+    level.toFixed(1) +
+    ' units</strong></div><div class="row between replay-controls">' +
+    '<span class="muted" data-replay-event aria-live="off">Watch the water rise</span>' +
+    control +
+    '</div><p class="muted replay-note">The live game continues while you watch.</p></div></div>'
+  );
+}
+function updateReplay() {
+  const view = state.replayViewing;
+  const overlay = $('.replay-shade');
+  if (!view || !overlay) return;
+  const duration = view.data.samples.at(-1)?.t || 0;
+  const elapsed = replayElapsed(view);
+  const frame = replayFrameAt(view.data, elapsed);
+  const stage = overlay.querySelector('[data-cup-stage]');
+  const water = stage?.querySelector('[data-water]');
+  if (water) water.style.height = Math.max(0, Math.min(100, frame.level)) + '%';
+  if (stage)
+    stage.classList.toggle('pouring', !!frame.pouring && elapsed < duration && !state.reduceMotion);
+  const level = overlay.querySelector('[data-replay-level]');
+  if (level)
+    level.textContent =
+      (elapsed >= duration ? view.data.finalLevel : frame.level).toFixed(1) + ' units';
+  const time = overlay.querySelector('[data-replay-time]');
+  if (time)
+    time.textContent = (elapsed / 1000).toFixed(1) + ' / ' + (duration / 1000).toFixed(1) + 's';
+  const lastEvent = (view.data.events || []).filter((e) => e.t <= elapsed).at(-1);
+  const captions = {
+    pourDown: 'Pour started',
+    pourUp: 'Released',
+    stop: 'Stopped',
+    ketchupGlug: 'Ketchup glug',
+    butterSplash: 'Butterfingers splash',
+    shakyBurst: 'Shaky burst',
+    spill: '💦 Spill!',
+  };
+  const caption = overlay.querySelector('[data-replay-event]');
+  if (caption)
+    caption.textContent = state.reduceMotion
+      ? 'Reduced motion · final spill'
+      : lastEvent
+        ? captions[lastEvent.type] || 'Water flowing'
+        : 'Watch the water rise';
+}
 function howOverlay() {
   if (!state.howOpen) return '';
   return `<div class="overlay" id="how-overlay" role="dialog" aria-modal="true" aria-label="How to play"><div class="modal"><div class="row between"><h2>How to play</h2><button class="mini-btn" data-close-help aria-label="Close">✕</button></div>${howContent(state.howStep)}<div class="row between"><button class="btn btn-white btn-small" data-how-prev ${state.howStep === 0 ? 'disabled' : ''}>← Back</button><button class="btn btn-primary btn-small" ${state.howStep < 2 ? 'data-how-next' : 'data-close-help'}>${state.howStep < 2 ? 'Next →' : 'Got it ✓'}</button></div><p class="muted" style="font-size:.85rem;line-height:1.5;margin-top:18px">Game ends after 3, 5 or 7 spills. Nobody is eliminated. Highest score wins; ties break by correct guesses, then a sudden-death pour.</p></div></div>`;
@@ -483,10 +591,11 @@ function render() {
   ].join('|');
   if (key === state.renderKey) return;
   state.renderKey = key;
-  app.innerHTML = `<div class="shell">${navbar()}${state.view === 'home' ? home() : ['create', 'join'].includes(state.view) ? authScreen() : game()}${footer()}</div>${howOverlay()}`;
+  app.innerHTML = `<div class="shell">${navbar()}${state.view === 'home' ? home() : ['create', 'join'].includes(state.view) ? authScreen() : game()}${footer()}</div>${howOverlay()}${replayOverlay()}`;
   updateVitals();
 }
 function updateVitals() {
+  updateReplay();
   const r = state.room;
   if (!r) return;
   document
@@ -606,6 +715,23 @@ async function resume() {
 document.addEventListener('click', (e) => {
   const el = e.target.closest('button');
   if (!el) return;
+  if (el.hasAttribute('data-replay-open')) return openReplay();
+  if (el.hasAttribute('data-replay-close')) {
+    state.replayViewing = null;
+    state.renderKey = '';
+    return render();
+  }
+  if (el.hasAttribute('data-replay-speed')) {
+    const view = state.replayViewing;
+    if (view && !state.reduceMotion) {
+      view.offset = replayElapsed(view);
+      view.startedAt = performance.now();
+      view.speed = view.speed === 1 ? 2 : 1;
+      state.renderKey = '';
+      render();
+    }
+    return;
+  }
   if (el.hasAttribute('data-home')) return setView('home');
   if (el.hasAttribute('data-new')) return leaveRoom();
   if (el.hasAttribute('data-open')) return setView(el.dataset.open);
@@ -691,6 +817,11 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) endPointer();
 });
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.replayViewing) {
+    state.replayViewing = null;
+    state.renderKey = '';
+    return render();
+  }
   if (e.code === 'Space' && document.activeElement?.hasAttribute('data-hold') && !e.repeat) {
     e.preventDefault();
     if (!state.held) {

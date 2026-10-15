@@ -3731,3 +3731,52 @@ h3 {
 .sprite-photoreal .sprite-bubble {
   z-index: 1;
 }
+
+/* Spill playback is independent of the authoritative reveal countdown. */
+.replay-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(25, 39, 61, 0.76);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+.replay-panel {
+  width: min(100%, 620px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  border: 3px solid var(--ink);
+  border-radius: 22px;
+  background: var(--paper);
+  padding: 20px;
+  box-shadow: 0 14px 0 #15233b56;
+}
+.replay-panel h2 {
+  margin: 0 0 5px;
+}
+.replay-panel .replay-stage {
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.replay-panel .replay-stage .cup-stage {
+  margin: 0;
+}
+.replay-controls {
+  margin-top: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.replay-note {
+  font-size: 0.83rem;
+  line-height: 1.4;
+  margin-top: 14px;
+}
+.reduce-motion .replay-shade *,
+.reduce-motion .replay-shade *::before,
+.reduce-motion .replay-shade *::after {
+  animation: none !important;
+  transition: none !important;
+}
