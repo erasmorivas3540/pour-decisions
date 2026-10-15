@@ -450,6 +450,40 @@ function game() {
     }[r.phase] || lobby;
   return `<div>${pauseBanner()}${content()}</div>`;
 }
+function replayFrameAt(replay, elapsed) {
+  const samples = replay.samples || [];
+  if (!samples.length || elapsed >= samples.at(-1).t)
+    return { level: replay.finalLevel, pouring: false };
+  if (elapsed <= samples[0].t) return samples[0];
+  let low = 0, high = samples.length - 1;
+  while (low + 1 < high) {
+    const mid = (low + high) >> 1;
+    if (samples[mid].t <= elapsed) low = mid;
+    else high = mid;
+  }
+  const from = samples[low], to = samples[high];
+  const fraction = (elapsed - from.t) / (to.t - from.t || 1);
+  return { level: from.level + (to.level - from.level) * fraction, pouring: from.pouring };
+}
+function replayElapsed(view) {
+  const duration = view.data.samples.at(-1)?.t || 0;
+  if (state.reduceMotion) return duration;
+  return Math.min(duration, view.offset + (performance.now() - view.startedAt) * view.speed);
+}
+function openReplay() {
+  const r = state.room;
+  if (r?.phase !== 'reveal' || !r.reveal?.spilled || !r.replay?.samples?.length) return;
+  state.replayViewing = {
+    data: r.replay,
+    pourerName: r.players.find((p) => p.id === r.replay.pourerId)?.name || 'Player',
+    jinxName: r.turn?.jinxDetail?.name || r.replay.jinx,
+    offset: 0,
+    speed: 1,
+    startedAt: performance.now(),
+  };
+  state.renderKey = '';
+  render();
+}
 function howOverlay() {
   if (!state.howOpen) return '';
   return `<div class="overlay" id="how-overlay" role="dialog" aria-modal="true" aria-label="How to play"><div class="modal"><div class="row between"><h2>How to play</h2><button class="mini-btn" data-close-help aria-label="Close">✕</button></div>${howContent(state.howStep)}<div class="row between"><button class="btn btn-white btn-small" data-how-prev ${state.howStep === 0 ? 'disabled' : ''}>← Back</button><button class="btn btn-primary btn-small" ${state.howStep < 2 ? 'data-how-next' : 'data-close-help'}>${state.howStep < 2 ? 'Next →' : 'Got it ✓'}</button></div><p class="muted" style="font-size:.85rem;line-height:1.5;margin-top:18px">Game ends after 3, 5 or 7 spills. Nobody is eliminated. Highest score wins; ties break by correct guesses, then a sudden-death pour.</p></div></div>`;
