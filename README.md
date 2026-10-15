@@ -97,7 +97,7 @@ flowchart LR
   H -->|"Server-Sent Events"| B
 ```
 
-The server consumes each stream ticket exactly once and sends a separately **filtered** snapshot to each authenticated listener; the room code alone does not authorize a stream. Secret jinx details and replay samples never reach guessers before reveal. Bots act inside the engine rather than opening HTTP connections. Rooms and the latest spill replay live in one Node process's memory, so a restart clears them. The visual foam effect of *Soda Can* remains visible to everyone, as designed.
+The server consumes each stream ticket exactly once and sends a separately **filtered** snapshot to each authenticated listener; the room code alone does not authorize a stream. Secret jinx details and replay samples never reach guessers before reveal. Bots act inside the engine rather than opening HTTP connections. Rooms and the latest spill replay live in one Node process's memory, so a restart clears them. The visual foam effect of _Soda Can_ remains visible to everyone, as designed.
 
 ### Project files
 
