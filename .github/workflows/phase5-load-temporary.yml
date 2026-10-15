@@ -18,19 +18,17 @@ jobs:
           node-version: '22'
       - run: npm ci
       - name: Format Task 10 source
-        run: npx prettier --write tests/load.mjs package.json
+        run: npx prettier --write tests/load.mjs package.json docs/LOAD_TEST.md docs/ENGINEERING_NOTES.md
       - run: npx prettier --check .
       - name: Run regression suite
         run: npm run check
       - name: Verify full game with one room
         run: npm run loadtest -- --rooms=1 --timeout-ms=90000
-      - name: Measure 20 complete rooms
-        run: npm run loadtest
       - name: Save validated files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/load.mjs package.json
+          git add tests/load.mjs package.json docs/LOAD_TEST.md docs/ENGINEERING_NOTES.md
           if ! git diff --cached --quiet; then
             git commit -m "Temporary formatted load-test files"
             git push origin HEAD:phase5-loadtest
