@@ -113,8 +113,6 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 export const POUR_RATE = 3;
 export const POUR_MAX_MS = 12000;
 export const EYEDROPPER_MAX_MS = 8000;
-const shuffle = (a) => [...a].sort(() => Math.random() - 0.5);
-const sample = (a, n) => shuffle(a).slice(0, n);
 const secret = () => randomBytes(20).toString('hex');
 const error = (message, status = 400) => Object.assign(new Error(message), { status });
 const connected = (p) => p.connections > 0;
@@ -131,6 +129,18 @@ export class GameEngine {
     this.scale = scale;
     this.random = random;
     this.rooms = new Map();
+  }
+  // Fisher–Yates uses the injected generator for repeatable simulated games.
+  shuffle(values) {
+    const result = [...values];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(this.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+  sample(values, n) {
+    return this.shuffle(values).slice(0, n);
   }
   ms(n) {
     return n * this.scale;
@@ -341,7 +351,7 @@ export class GameEngine {
     return room;
   }
   startRounds(room) {
-    room.turnOrder = shuffle(room.players.filter((p) => !p.spectator).map((p) => p.id));
+    room.turnOrder = this.shuffle(room.players.filter((p) => !p.spectator).map((p) => p.id));
     room.turnIndex = Math.floor(this.random() * room.turnOrder.length);
     room.lastPourer = null;
     room.turnNumber = 0;
@@ -366,7 +376,7 @@ export class GameEngine {
     const pourer = room.players.find((p) => p.id === room.turnOrder[room.turnIndex]);
     const jinxer = room.players.find((p) => p.id === room.lastPourer && connected(p));
     const pool = JINXES.filter((j) => j.id !== pourer.lastJinx);
-    const offered = sample(pool, 3).map((j) => j.id);
+    const offered = this.sample(pool, 3).map((j) => j.id);
     room.turnNumber++;
     room.turn = {
       turnNumber: room.turnNumber,
@@ -406,9 +416,9 @@ export class GameEngine {
     const now = this.clock();
     t.jinx = id;
     room.players.find((p) => p.id === t.pourerId).lastJinx = id;
-    t.options = shuffle([
+    t.options = this.shuffle([
       id,
-      ...sample(
+      ...this.sample(
         JINXES.filter((j) => j.id !== id).map((j) => j.id),
         3,
       ),
@@ -616,7 +626,7 @@ export class GameEngine {
     );
   }
   startDuel(room, ids) {
-    const jinx = sample(
+    const jinx = this.sample(
       JINXES.filter((j) => ['fog', 'tunnel', 'lag', 'lights', 'above', 'soda'].includes(j.id)),
       1,
     )[0].id;
@@ -760,7 +770,7 @@ export class GameEngine {
         continue;
       }
       if (room.phase === 'jinx' && now >= room.deadline) {
-        this.chooseJinx(room, sample(room.turn.offered, 1)[0]);
+        this.chooseJinx(room, this.sample(room.turn.offered, 1)[0]);
         changed.push(room.code);
       } else if (room.phase === 'pour') {
         const t = room.turn;

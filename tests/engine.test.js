@@ -461,3 +461,28 @@ test('two-player disconnect pauses at one player and reconnect resumes', () => {
   assert.equal(room.pauseStarted, 0);
   assert.ok(['pour', 'reveal'].includes(room.phase));
 });
+
+test('Fisher–Yates: seeded 20,000 shuffles have near-uniform position frequency', () => {
+  const seeded = () => {
+    let seed = 0x9e3779b9;
+    return () => {
+      seed ^= seed << 13;
+      seed ^= seed >>> 17;
+      seed ^= seed << 5;
+      return (seed >>> 0) / 4294967296;
+    };
+  };
+  const engine = new GameEngine({ random: seeded() });
+  const counts = Array.from({ length: 4 }, () => [0, 0, 0, 0]);
+  const original = [0, 1, 2, 3];
+  const repeat = new GameEngine({ random: seeded() });
+  for (let t = 0; t < 20000; t++) {
+    const shuffled = engine.shuffle(original);
+    assert.deepEqual(shuffled, repeat.shuffle(original), 'injected RNG reproduces shuffles');
+    shuffled.forEach((item, position) => counts[item][position]++);
+  }
+  assert.deepEqual(original, [0, 1, 2, 3], 'input array is not modified');
+  for (const row of counts) for (const count of row)
+    assert.ok(count >= 4600 && count <= 5400, `count ${count} must be 25% ±2pp`);
+  assert.equal(engine.sample(original, 2).length, 2);
+});

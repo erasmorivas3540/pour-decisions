@@ -22,3 +22,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** The randomly selected Opposite Controls jinx intentionally resumes pouring when the player releases. The test did not use the separate Stop control required by that jinx.
 - **Fix:** When the test's chosen jinx is Opposite Controls, it now sends the real `stop` action after the release, without changing the engine, scoring, or any gameplay timer.
 - **How it is tested:** The same live HTTP/SSE three-client integration assertions and the full 28-test regression suite passed in the isolated formatting run.
+
+## October 14, 2026 — Shuffle fairness (Phase 2, task 4)
+
+- **Symptom:** Turn order and jinx cards relied on `sort(() => Math.random() - 0.5)`, which samples permutations unevenly and ignores the seeded engine RNG.
+- **Root cause:** Comparator-based shuffling and module-level global randomness.
+- **Fix:** Copy-preserving Fisher–Yates and sampling methods that consume `this.random` for all shuffle and selection paths.
+- **How it is tested:** Seeded 20,000-trial position-frequency checks (23–27% per cell), deterministic replay checks and immutability assertion, plus `npm run check`.
