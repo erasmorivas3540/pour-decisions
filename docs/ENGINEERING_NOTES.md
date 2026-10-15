@@ -57,3 +57,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** The test harness made fixed startup and phase-wait assumptions despite variable process scheduling. The stream-ticket expiry test also used a 120-millisecond test-only TTL, leaving little room for ordinary scheduling delays.
 - **Fix:** Preserved ephemeral ports (`PORT=0`) and gameplay clocks, increased only test startup, phase, and per-test wait limits, and tested ticket expiration with a one-second test-only TTL and a longer expiry wait.
 - **How it is tested:** Run `npm run check` in GitHub Actions on both Node 20 and Node 22; the same SSE and security assertions must pass without altering production behavior.
+
+## October 14, 2026 — Spill replay visibility and bounded recording (Phase 4, task 8)
+
+- **Symptom:** Spill reveals showed only the final cup and could not replay how the overflow happened. Exposing an entire active turn timeline to clients would reveal secret jinx information before guessing ended.
+- **Root cause:** The 20 Hz physics tick only retained a short private level history for Lag Goggles; no replay record, limited event feed, or phase-gated playback existed.
+- **Fix:** Record bounded per-turn time/level/pouring samples at the existing tick cadence, plus pour inputs, glugs, splashes, bursts, and spill events. Keep at most 400 frames and 64 events per turn, retain only the most recent spill in each room, and project replay to client state only during that spill's reveal phase. The independent, accessible side-camera playback overlay supports 1×/2× while the game continues and shows the exact final level; reduced-motion mode shows the final frame.
+- **How it is tested:** `tests/replay.test.js` asserts privacy in jinx/pour/guess, availability at reveal, 400-sample cap, exact final level, recorded special events, rematch clearing, and client playback interpolation. The camera VM test isolates unrelated replay update work; run `npm run check` and `npx prettier --check .` under both Node.js 20 and 22 CI before merging.
