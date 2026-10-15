@@ -10,22 +10,22 @@ The test launched `server.js` on an ephemeral localhost port with `GAME_TIME_SCA
 
 ### Measured results
 
-| Measurement | Observed value |
-|---|---:|
-| Rooms requested / completed | 20 / 20 |
-| Human HTTP/SSE clients | 40 |
-| Engine bot seats | 40 |
-| Completed game spills per room | 3 |
-| HTTP `POST /api/action` requests | 1,554 |
-| Failed room runs / request errors | 0 |
-| SSE state messages observed | 33,094 |
-| Action-to-matching-SSE latency samples | 1,554 |
-| Latency p50 | 1.43 ms |
-| Latency p95 | 13.33 ms |
-| Latency max | 35.14 ms |
-| Server peak resident memory (Linux `VmHWM`) | 101.22 MiB |
-| Load-harness peak resident memory | 128.83 MiB |
-| Elapsed runtime | 48.18 seconds |
+| Measurement                                 | Observed value |
+| ------------------------------------------- | -------------: |
+| Rooms requested / completed                 |        20 / 20 |
+| Human HTTP/SSE clients                      |             40 |
+| Engine bot seats                            |             40 |
+| Completed game spills per room              |              3 |
+| HTTP `POST /api/action` requests            |          1,554 |
+| Failed room runs / request errors           |              0 |
+| SSE state messages observed                 |         33,094 |
+| Action-to-matching-SSE latency samples      |          1,554 |
+| Latency p50                                 |        1.43 ms |
+| Latency p95                                 |       13.33 ms |
+| Latency max                                 |       35.14 ms |
+| Server peak resident memory (Linux `VmHWM`) |     101.22 MiB |
+| Load-harness peak resident memory           |     128.83 MiB |
+| Elapsed runtime                             |  48.18 seconds |
 
 Percentiles use the nearest-rank method on **successful HTTP action → matching SSE state update** measurements. Bots act inside the engine without HTTP requests, so the action count and latency measurements cover the human clients only. The memory measurements are for the server process and load harness respectively, not combined system memory.
 

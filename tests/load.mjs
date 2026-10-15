@@ -98,7 +98,10 @@ class Client {
         }
       }
     } catch (error) {
-      if (!this.abort.signal.aborted) { stats.errors++; console.error('SSE read interrupted:', error.message); }
+      if (!this.abort.signal.aborted) {
+        stats.errors++;
+        console.error('SSE read interrupted:', error.message);
+      }
     } finally {
       reader.releaseLock();
     }
@@ -298,7 +301,8 @@ try {
 const result = {
   date: new Date().toISOString(),
   machine,
-  command: 'npm run loadtest' + (process.argv.length > 2 ? ' -- ' + process.argv.slice(2).join(' ') : ''),
+  command:
+    'npm run loadtest' + (process.argv.length > 2 ? ' -- ' + process.argv.slice(2).join(' ') : ''),
   roomsRequested: roomCount,
   roomsCompleted: stats.completed,
   humansPerRoom: 2,
