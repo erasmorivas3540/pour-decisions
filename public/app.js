@@ -43,6 +43,7 @@ const state = {
   lastPhase: '',
   lastTurn: 0,
   soundTime: 0,
+  replayViewing: null,
   serverAt: 0,
   receivedAt: 0,
 };
@@ -177,6 +178,7 @@ async function connect() {
   };
 }
 function onPhase(room, old) {
+  if (room.phase === 'lobby') state.replayViewing = null;
   if (room.phase === 'howto') state.howStep = 0;
   if (room.phase === 'reveal') {
     if (room.reveal?.spilled) {
@@ -188,6 +190,7 @@ function onPhase(room, old) {
   if (old?.phase === 'pour' && room.phase !== 'pour') state.held = false;
 }
 function leaveRoom() {
+  state.replayViewing = null;
   streamAttempt++;
   clearTimeout(reconnectTimer);
   state.source?.close();
@@ -390,7 +393,7 @@ function revealScreen() {
   const j = t.jinxDetail,
     guesses = Object.entries(v.guesses || {}),
     isSpill = v.spilled;
-  return `<div class="gamehead center"><span class="pill">${v.duel ? '⚔️ SHOWDOWN RESULT' : '🎭 THE BIG REVEAL'}</span><h2 style="margin-top:13px" class="reveal-title ${isSpill ? 'spill' : 'safe'}">${isSpill ? '💦 SPILLED!' : '✨ CLEAN POUR!'}</h2><p>${nameFor(v.pourerId)} ${isSpill ? 'went a little too far…' : 'kept their cool!'}</p></div><div class="game-grid"><section><div class="card"><div class="row between"><span class="pill blue">ADDED +${v.added} UNITS</span>${countdown()}</div><div class="results-cup">${cupScene(Math.min(v.level, 100), { spilled: isSpill, danger: isSpill, camera: 'side' })}</div><div class="center"><span class="eyebrow muted">THE SECRET WAS</span><div class="reveal-jinx"><span>${j?.icon || '🃏'}</span><div><div>${j?.name || 'Unknown'}</div><small>${j?.mult || 1}× MULTIPLIER</small></div></div></div>${
+  return `<div class="gamehead center"><span class="pill">${v.duel ? '⚔️ SHOWDOWN RESULT' : '🎭 THE BIG REVEAL'}</span><h2 style="margin-top:13px" class="reveal-title ${isSpill ? 'spill' : 'safe'}">${isSpill ? '💦 SPILLED!' : '✨ CLEAN POUR!'}</h2><p>${nameFor(v.pourerId)} ${isSpill ? 'went a little too far…' : 'kept their cool!'}</p></div><div class="game-grid"><section><div class="card"><div class="row between"><span class="pill blue">ADDED +${v.added} UNITS</span>${countdown()}</div><div class="results-cup">${cupScene(Math.min(v.level, 100), { spilled: isSpill, danger: isSpill, camera: 'side' })}</div>${isSpill && r.replay?.samples?.length ? '<div class="center" style="margin:14px 0"><button class="btn btn-primary" data-replay-open>▶ Watch the spill</button></div>' : ''}<div class="center"><span class="eyebrow muted">THE SECRET WAS</span><div class="reveal-jinx"><span>${j?.icon || '🃏'}</span><div><div>${j?.name || 'Unknown'}</div><small>${j?.mult || 1}× MULTIPLIER</small></div></div></div>${
     v.duel
       ? '<div class="cue">Each finalist pours from 85 with the same jinx. The safest, fullest pour wins.</div>'
       : `${t.headToHead ? '<div class="cue" style="margin-top:18px">⚔️ Two-player duel — no guessing bonuses. Swap roles next turn!</div>' : `<div style="margin-top:19px"><h3>🕵️ Detective results</h3>${guesses.length ? guesses.map(([id, guess]) => `<div class="guess-result"><span>${avatarFor(id)} ${nameFor(id)} guessed ${escapeHTML(guess.replaceAll('-', ' '))}</span><span class="delta ${guess === v.jinx ? '' : 'negative'}">${guess === v.jinx ? '+5 ✓' : '✕'}</span></div>`).join('') : '<p class="muted" style="margin-top:10px">No guesses this round.</p>'}</div>`}<h3 style="margin-top:20px">Points this turn</h3>${
@@ -483,10 +486,11 @@ function render() {
   ].join('|');
   if (key === state.renderKey) return;
   state.renderKey = key;
-  app.innerHTML = `<div class="shell">${navbar()}${state.view === 'home' ? home() : ['create', 'join'].includes(state.view) ? authScreen() : game()}${footer()}</div>${howOverlay()}`;
+  app.innerHTML = `<div class="shell">${navbar()}${state.view === 'home' ? home() : ['create', 'join'].includes(state.view) ? authScreen() : game()}${footer()}</div>${howOverlay()}${replayOverlay()}`;
   updateVitals();
 }
 function updateVitals() {
+  updateReplay();
   const r = state.room;
   if (!r) return;
   document
@@ -606,6 +610,23 @@ async function resume() {
 document.addEventListener('click', (e) => {
   const el = e.target.closest('button');
   if (!el) return;
+  if (el.hasAttribute('data-replay-open')) return openReplay();
+  if (el.hasAttribute('data-replay-close')) {
+    state.replayViewing = null;
+    state.renderKey = '';
+    return render();
+  }
+  if (el.hasAttribute('data-replay-speed')) {
+    const view = state.replayViewing;
+    if (view && !state.reduceMotion) {
+      view.offset = replayElapsed(view);
+      view.startedAt = performance.now();
+      view.speed = view.speed === 1 ? 2 : 1;
+      state.renderKey = '';
+      render();
+    }
+    return;
+  }
   if (el.hasAttribute('data-home')) return setView('home');
   if (el.hasAttribute('data-new')) return leaveRoom();
   if (el.hasAttribute('data-open')) return setView(el.dataset.open);
@@ -691,6 +712,11 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) endPointer();
 });
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.replayViewing) {
+    state.replayViewing = null;
+    state.renderKey = '';
+    return render();
+  }
   if (e.code === 'Space' && document.activeElement?.hasAttribute('data-hold') && !e.repeat) {
     e.preventDefault();
     if (!state.held) {
