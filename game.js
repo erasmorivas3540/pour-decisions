@@ -886,7 +886,10 @@ export class GameEngine {
     const changed = [];
     for (const room of this.rooms.values()) {
       if (room.hostGoneAt) this.hostHandoff(room);
-      if (room.players.every((p) => p.bot || !connected(p)) && now - room.lastActivity > 30 * 60000) {
+      if (
+        room.players.every((p) => p.bot || !connected(p)) &&
+        now - room.lastActivity > 30 * 60000
+      ) {
         this.rooms.delete(room.code);
         continue;
       }

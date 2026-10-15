@@ -160,5 +160,9 @@ test('unattended bot rooms expire after all human clients disconnect', () => {
   const oldTime = s.engine.clock;
   s.engine.clock = () => oldTime() + 30 * 60000 + 5000;
   s.engine.tick();
-  assert.equal(s.engine.rooms.has(s.host.code), false, 'engine-owned bots cannot keep an abandoned room alive');
+  assert.equal(
+    s.engine.rooms.has(s.host.code),
+    false,
+    'engine-owned bots cannot keep an abandoned room alive',
+  );
 });
