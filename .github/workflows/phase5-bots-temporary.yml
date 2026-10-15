@@ -1,0 +1,34 @@
+name: Temporary Phase 5 bots verification
+on:
+  push:
+    branches: [phase5-bots-formatter]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase5-bots
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Format touched files
+        run: npx prettier --write game.js public/app.js tests/bots.test.js docs/ENGINEERING_NOTES.md
+      - name: Check repository formatting
+        run: npx prettier --check .
+      - name: Run complete suite
+        run: npm run check
+      - name: Push validated formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game.js public/app.js tests/bots.test.js docs/ENGINEERING_NOTES.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Temporary formatted bot sources"
+            git push origin HEAD:phase5-bots
+          fi
