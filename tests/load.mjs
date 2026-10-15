@@ -52,3 +52,107 @@ async function api(route, payload) {
   if (!response.ok) throw new Error(route + ' failed HTTP ' + response.status + ': ' + data.error);
   return data;
 }
+class Client {
+  constructor(seat) {
+    this.seat = seat;
+    this.state = null;
+    this.waiters = new Set();
+    this.abort = new AbortController();
+  }
+  async connect() {
+    const { ticket } = await api('stream-ticket', this.seat);
+    const response = await fetch(base + '/api/stream?ticket=' + encodeURIComponent(ticket), {
+      signal: this.abort.signal,
+    });
+    assert.equal(response.status, 200, 'ticketed SSE accepted');
+    void this.read(response.body);
+  }
+  async read(body) {
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let end;
+        while ((end = buffer.indexOf('\n\n')) >= 0) {
+          const frame = buffer.slice(0, end);
+          buffer = buffer.slice(end + 2);
+          const data = frame.split('\n').find((line) => line.startsWith('data: '));
+          if (!data) continue;
+          const snapshot = JSON.parse(data.slice(6));
+          this.state = snapshot;
+          stats.sseMessages++;
+          const receivedAt = performance.now();
+          for (const waiter of [...this.waiters]) {
+            if (waiter.predicate(snapshot)) {
+              this.waiters.delete(waiter);
+              clearTimeout(waiter.timer);
+              waiter.resolve({ snapshot, receivedAt });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      if (!this.abort.signal.aborted) console.error('SSE read interrupted:', error.message);
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  expect(predicate, ms = 7000) {
+    let waiter;
+    const promise = new Promise((resolve, reject) => {
+      waiter = {
+        predicate, resolve, reject,
+        timer: setTimeout(() => {
+          this.waiters.delete(waiter);
+          reject(new Error('Matching SSE state did not arrive within ' + ms + 'ms'));
+        }, ms),
+      };
+      this.waiters.add(waiter);
+    });
+    return {
+      promise,
+      cancel: () => {
+        if (this.waiters.delete(waiter)) {
+          clearTimeout(waiter.timer);
+          waiter.resolve(null);
+        }
+      },
+    };
+  }
+  close() {
+    for (const w of this.waiters) {
+      clearTimeout(w.timer);
+      w.resolve(null);
+    }
+    this.waiters.clear();
+    this.abort.abort();
+  }
+}
+async function waitUntil(fn, ms = 10000) {
+  const end = performance.now() + ms;
+  while (performance.now() < end) {
+    if (fn()) return;
+    await sleep(30);
+  }
+  throw new Error('Timed out waiting for connected SSE clients');
+}
+async function action(client, type, value, matches) {
+  const startedAt = performance.now();
+  const expected = client.expect(matches);
+  try {
+    stats.actions++;
+    await api('action', { ...client.seat, type, value: value || {} });
+  } catch (error) {
+    expected.cancel();
+    throw error;
+  }
+  const matched = await expected.promise;
+  assert.ok(matched, 'action must have a matching SSE broadcast');
+  const latency = matched.receivedAt - startedAt;
+  assert.ok(latency >= 0, 'monotonic POST-to-SSE timing');
+  stats.latencies.push(latency);
+}
