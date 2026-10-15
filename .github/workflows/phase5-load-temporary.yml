@@ -1,0 +1,37 @@
+name: Temporary Task 10 load-test verification
+on:
+  push:
+    branches: [phase5-load-runner]
+permissions:
+  contents: write
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase5-loadtest
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Format Task 10 source
+        run: npx prettier --write tests/load.mjs package.json
+      - run: npx prettier --check .
+      - name: Run regression suite
+        run: npm run check
+      - name: Verify full game with one room
+        run: npm run loadtest -- --rooms=1 --timeout-ms=90000
+      - name: Measure 20 complete rooms
+        run: npm run loadtest
+      - name: Save validated files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/load.mjs package.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Temporary formatted load-test files"
+            git push origin HEAD:phase5-loadtest
+          fi
