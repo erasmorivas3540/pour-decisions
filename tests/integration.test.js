@@ -38,6 +38,8 @@ async function integration(){
   await post('action',{...pourerS,type:'pourDown'});
   await sleep(240);
   await post('action',{...pourerS,type:'pourUp'});
+  // Opposite Controls keeps the bottle flowing on release; its separate Stop control ends it.
+  if(pourer.state.turn.jinx==='opposite')await post('action',{...pourerS,type:'stop'});
   await waitFor(()=>clients.every(c=>c.state?.phase==='guess'),4000);
   assert.ok(guessers[0].history.some(s=>s.phase==='pour'&&s.level>0),'water should sync over SSE');
   assert.ok(guessers[1].state.level>=6);
