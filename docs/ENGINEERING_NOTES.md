@@ -36,3 +36,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** EventSource cannot set a custom Authorization header, so the client embedded the credential into the query string.
 - **Fix:** Authenticated POST `/api/stream-ticket` issues an unpredictable, one-time 30-second capability (test-only TTL override). GET `/api/stream?ticket=` consumes it before establishing SSE, rejects legacy query credentials, and the browser fetches a fresh ticket after every reconnection.
 - **How it is tested:** Ticket endpoint test covers valid stream, replay/reuse, expiry, missing ticket, old token URL rejection, unauthorized issuance, and fresh reconnect; existing two-/three-player SSE integration tests use tickets.
+
+## October 14, 2026 — Shared Wi-Fi request throttling (Phase 2, task 6)
+
+- **Symptom:** A single 200/minute IP-wide limit could return 429 to an entire dorm, classroom, or shared connection even when individual players were within normal usage.
+- **Root cause:** The rate bucket was indexed only by `req.socket.remoteAddress` for every POST route.
+- **Fix:** Use 600/minute per IP for anonymous create/join endpoints only; rate-limit authenticated `/api/action` and `/api/stream-ticket` requests at 120/minute per player ID. Both maps are bounded by periodic stale-bucket eviction.
+- **How it is tested:** An eight-player HTTP/SSE test sends over 200 combined requests from one loopback IP without a 429, then shows that only a single player exceeding 120/minute is blocked while another player's actions remain permitted.

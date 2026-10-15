@@ -79,15 +79,19 @@ function consumeStreamTicket(ticket) {
   }
   return entry;
 }
-const rateLimit = new Map();
-function limited(req) {
-  const ip = req.socket.remoteAddress || '';
+// The IP limiter protects anonymous room creation/joining, while authenticated
+// play and reconnect traffic is budgeted per seat so shared Wi-Fi stays usable.
+const ipRateLimit = new Map();
+const playerRateLimit = new Map();
+function limited(map, key, maximum) {
   const now = Date.now();
-  let a = rateLimit.get(ip) || { at: now, n: 0 };
-  if (now - a.at > 60000) a = { at: now, n: 0 };
-  a.n++;
-  rateLimit.set(ip, a);
-  if (a.n > 200) throw Object.assign(new Error('Please wait a moment.'), { status: 429 });
+  let usage = map.get(key) || { at: now, n: 0 };
+  if (now - usage.at >= 60000) usage = { at: now, n: 0 };
+  usage.n++;
+  map.set(key, usage);
+  if (usage.n > maximum) {
+    throw Object.assign(new Error('Please wait a moment.'), { status: 429 });
+  }
 }
 const server = http.createServer(async (req, res) => {
   try {
@@ -125,8 +129,10 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === 'POST' && url.pathname.startsWith('/api/')) {
-      limited(req);
       const b = await body(req);
+      if (url.pathname === '/api/create' || url.pathname === '/api/join') {
+        limited(ipRateLimit, req.socket.remoteAddress || '', 600);
+      }
       if (url.pathname === '/api/create') {
         const s = game.create(b.name, b.avatar);
         return json(res, 200, s);
@@ -146,9 +152,12 @@ const server = http.createServer(async (req, res) => {
       }
       if (url.pathname === '/api/stream-ticket') {
         const { room, player } = game.auth(b.code, b.id, b.token);
+        limited(playerRateLimit, player.id, 120);
         return json(res, 200, { ticket: issueStreamTicket(room, player), expiresInMs: ticketLifetimeMs });
       }
       if (url.pathname === '/api/action') {
+        const { player } = game.auth(b.code, b.id, b.token);
+        limited(playerRateLimit, player.id, 120);
         const room = game.action(b.code, b.id, b.token, b.type, b.value || {});
         push(room);
         return json(res, 200, { ok: true });
@@ -197,7 +206,8 @@ setInterval(() => {
   }
   const now = Date.now();
   for (const [ticket, session] of streamTickets) if (session.expiresAt <= now) streamTickets.delete(ticket);
-  for (const [ip, v] of rateLimit) if (now - v.at > 120000) rateLimit.delete(ip);
+  for (const [ip, v] of ipRateLimit) if (now - v.at > 120000) ipRateLimit.delete(ip);
+  for (const [id, v] of playerRateLimit) if (now - v.at > 120000) playerRateLimit.delete(id);
 }, 250).unref();
 server.listen(PORT, '0.0.0.0', () =>
   console.log(`Pour Decisions listening on http://0.0.0.0:${server.address().port}`),
