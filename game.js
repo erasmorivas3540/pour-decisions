@@ -275,7 +275,9 @@ export class GameEngine {
       return;
     }
     if (this.clock() - room.hostGoneAt < this.ms(2000)) return;
-    const next = room.players.find((p) => playable(p) && !p.bot) || room.players.find((p) => connected(p) && !p.bot);
+    const next =
+      room.players.find((p) => playable(p) && !p.bot) ||
+      room.players.find((p) => connected(p) && !p.bot);
     if (next) {
       room.hostId = next.id;
       room.hostGoneAt = 0;
@@ -395,7 +397,8 @@ export class GameEngine {
       if (!bot || t.dripping || t.stopRequested || t.botCommitted) return false;
       if (t.botTarget === undefined) {
         // Absolute target 70–97, reduced for difficult jinxes the bot knows.
-        const margin = { heavy: 2.5, fire: 1, ketchup: 2, butter: 8, shaky: 2, opposite: 1 }[t.jinx] || 0;
+        const margin =
+          { heavy: 2.5, fire: 1, ketchup: 2, butter: 8, shaky: 2, opposite: 1 }[t.jinx] || 0;
         t.botTarget = Math.max(70, Math.min(97, 70 + this.random() * 27 - margin));
       }
       if (!t.started) {

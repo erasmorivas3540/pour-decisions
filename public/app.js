@@ -774,7 +774,8 @@ document.addEventListener('click', (e) => {
     return render();
   }
   if (el.hasAttribute('data-add-bot')) return apiAction('addBot');
-  if (el.hasAttribute('data-remove-bot')) return apiAction('removeBot', { id: el.dataset.removeBot });
+  if (el.hasAttribute('data-remove-bot'))
+    return apiAction('removeBot', { id: el.dataset.removeBot });
   if (el.hasAttribute('data-limit'))
     return apiAction('settings', { spillLimit: Number(el.dataset.limit) });
   if (el.hasAttribute('data-action'))
