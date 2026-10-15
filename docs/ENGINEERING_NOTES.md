@@ -78,3 +78,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** The original room expiry check tested whether every seat was disconnected, and bot actions refreshed the room's last-activity clock.
 - **Fix:** Expiration considers only connected human seats, and only human actions or connection changes refresh activity. Bots may finish a game normally but cannot hold an empty room forever.
 - **How it is tested:** A fake-clock regression confirms a bot-filled room survives a short human disconnect but expires after the existing 30-minute inactivity threshold; the full engine and integration suite is re-run.
+
+## October 15, 2026 — HTTP/SSE load-measurement coverage (Phase 5, task 10)
+
+- **Symptom:** The project had integration tests but no reproducible measurement of multiple concurrent complete games, HTTP-to-SSE propagation delay, or server memory high-water mark.
+- **Root cause:** Existing tests focused on individual room correctness rather than concurrent end-to-end workload and telemetry.
+- **Fix:** Added a standalone, zero-dependency `tests/load.mjs` runner, exposed by `npm run loadtest`. It uses a fresh ephemeral server, ticketed SSE clients, real HTTP actions, two engine bots per room, per-action matching SSE latency tracking, and Linux process high-water-mark memory sampling. Performance results are recorded in `docs/LOAD_TEST.md` only after executing the benchmark.
+- **How it is tested:** The GitHub Actions measurement run completed a one-room smoke game and 20/20 concurrent three-spill games with 0 reported errors. The normal `npm run check` suite passed 39 tests. Recorded measurements, date, hardware and exact command are preserved in the load-test report.
