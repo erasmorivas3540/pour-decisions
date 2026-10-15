@@ -156,6 +156,7 @@ export class GameEngine {
     room.turnIndex=Math.floor(this.random()*room.turnOrder.length);
     room.lastPourer=null;room.turnNumber=0;this.beginTurn(room,true);
   }
+  // Advance the shared turn order while skipping disconnected players; prepare a fresh secret jinx.
   beginTurn(room,first=false){
     const active=room.players.filter(playable);
     if(active.length<2){this.checkPause(room);return;}
@@ -239,6 +240,7 @@ export class GameEngine {
     if(t.headToHead){this.revealTurn(room);return;}
     room.phase='guess';room.deadline=this.clock()+this.ms(5000);
   }
+  // Score the completed pour once, then make its previously secret jinx visible to everyone.
   revealTurn(room){
     const t=room.turn;if(!t)return;const j=JINX_BY_ID[t.jinx];const pourer=room.players.find(p=>p.id===t.pourerId);
     const deltas={};const add=(id,amt)=>{if(!id)return;const p=room.players.find(x=>x.id===id);if(p){p.score+=amt;deltas[id]=(deltas[id]||0)+amt;}};
@@ -257,6 +259,7 @@ export class GameEngine {
     room.phase='reveal';room.deadline=this.clock()+this.ms(4500);
   }
   sorted(room){return [...room.players].filter(p=>!p.spectator).sort((a,b)=>b.score-a.score||b.correct-a.correct||room.players.indexOf(a)-room.players.indexOf(b));}
+  // Score and correct-guess ties are resolved by the equal-handicap sudden-death round.
   resolveEnd(room){
     const ranked=this.sorted(room);if(!ranked.length){room.phase='gameover';return;}
     const top=ranked.filter(p=>p.score===ranked[0].score&&p.correct===ranked[0].correct);
@@ -302,6 +305,8 @@ export class GameEngine {
     room.phase='lobby';room.cup=0;room.spills=0;room.turn=null;room.turnIndex=-1;room.turnOrder=[];room.turnNumber=0;room.lastPourer=null;room.reveal=null;room.winner=null;room.duel=null;room.deadline=0;room.pauseStarted=0;
     for(const p of room.players){p.score=0;p.correct=0;p.goodPours=0;p.sabotages=0;p.ready=false;p.lastJinx=null;}
   }
+  // Server-owned timer and water-physics loop: one pass over active rooms per 50ms tick.
+  // Pauses freeze transitions; pending inputs and timeouts are resolved before broadcasting state.
   tick(){
     const now=this.clock();const changed=[];
     for(const room of this.rooms.values()){
@@ -314,9 +319,11 @@ export class GameEngine {
       else if(room.phase==='pour'){
         const t=room.turn;
         const dt=Math.max(0,Math.min(0.2,(now-t.lastTick)/this.scale/1000));t.lastTick=now;
+        // Bound the level snapshots used by Lag Goggles rather than retaining an entire game.
         t.levelHistory??=[];t.levelHistory.push({at:now,level:room.cup});if(t.levelHistory.length>70)t.levelHistory.shift();
         if(!t.started&&now>=room.deadline){this.autoMinimum(room);changed.push(room.code);continue;}
         if(t.started){
+          // Apply queued delayed controls before calculating this tick's actual flow.
           if(t.events?.length){const ready=t.events.filter(e=>now>=e.at);t.events=t.events.filter(e=>now<e.at);for(const e of ready)t.effectiveHeld=e.down;}
           const elapsed=(now-t.pourStartAt)/this.scale;
           const maxDur=t.jinx==='eye'?EYEDROPPER_MAX_MS:POUR_MAX_MS;
@@ -347,6 +354,8 @@ export class GameEngine {
     }
     return changed;
   }
+  // Project one personalized snapshot: hide the real jinx and private options until reveal.
+  // Do not leak accurate level readings to a player under a vision handicap.
   state(room,p){
     const now=this.clock(),t=room.turn;
     const secretAccess=t&&(p.id===t.pourerId||p.id===t.jinxerId);
