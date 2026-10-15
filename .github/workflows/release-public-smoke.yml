@@ -26,6 +26,12 @@ jobs:
         env:
           TEST_URL: https://pour-decisions-ozbh.onrender.com
         run: node tests/public-browser-smoke.mjs
+      - name: Install WebKit browser engine for iPhone-sized compatibility test
+        run: npx playwright install --with-deps webkit
+      - name: Test live game using mobile WebKit
+        env:
+          TEST_URL: https://pour-decisions-ozbh.onrender.com
+        run: node tests/public-webkit-smoke.mjs
       - name: Save production browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
