@@ -1,0 +1,48 @@
+name: Temporary Phase 1 Prettier Run
+on:
+  push:
+    branches: [phase1-prettier-format]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Prettier as a dev dependency
+        run: npm install --save-dev --save-exact prettier@3.6.2
+      - name: Configure formatting and scripts
+        run: |
+          cat > .prettierrc <<'EOF'
+          {
+            "tabWidth": 2,
+            "useTabs": false,
+            "singleQuote": true,
+            "printWidth": 100
+          }
+          EOF
+          npm pkg set 'scripts.format=prettier --write server.js game.js public/app.js "tests/**/*.js"'
+      - name: Format requested JavaScript
+        run: npm run format
+      - name: Verify formatted files
+        run: npx prettier --check server.js game.js public/app.js 'tests/**/*.js'
+      - name: Run full regression checks
+        run: npm run check
+      - name: Commit formatted source to temporary branch
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add package.json package-lock.json .prettierrc server.js game.js public/app.js tests
+          git diff --cached --exit-code && exit 0 || true
+          git commit -m "Temporary Prettier output for Phase 1 review"
+          git push origin HEAD:phase1-prettier-format
