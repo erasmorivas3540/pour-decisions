@@ -43,3 +43,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** The rate bucket was indexed only by `req.socket.remoteAddress` for every POST route.
 - **Fix:** Use 600/minute per IP for anonymous create/join endpoints only; rate-limit authenticated `/api/action` and `/api/stream-ticket` requests at 120/minute per player ID. Both maps are bounded by periodic stale-bucket eviction.
 - **How it is tested:** An eight-player HTTP/SSE test sends over 200 combined requests from one loopback IP without a 429, then shows that only a single player exceeding 120/minute is blocked while another player's actions remain permitted.
+
+## October 14, 2026 — Sprite CSS test survives style formatting (Phase 3, task 7)
+
+- **Symptom:** A repository-wide Prettier check correctly reported unformatted CSS; after formatting, a sprite asset test failed even though the photographic animation rules remained present.
+- **Root cause:** The test used spacing-sensitive regular expressions for the CSS selector, asset URL, and sprite dimensions.
+- **Fix:** Match the same selector, precise 16-frame asset path, and 400% × 400% sprite grid while tolerating Prettier-generated whitespace. Kept all existing asset and no-volume-marker assertions.
+- **How it is tested:** Run `npx prettier --check .` and `npm run check` on the Node.js 20 and 22 CI matrix.
