@@ -147,3 +147,18 @@ test('one human and two bots finish a complete three-spill match without wrong-t
   assert.ok(maxSamples <= 400, 'replay limits still apply to bots');
   assert.ok(s.room.winner, 'game yields a winner');
 });
+
+test('unattended bot rooms expire after all human clients disconnect', () => {
+  const s = roomFixture();
+  s.action(s.host, 'addBot');
+  s.action(s.host, 'addBot');
+  s.engine.connection(s.host.code, s.host.id, s.host.token, -1);
+  assert.ok(s.engine.rooms.has(s.host.code), 'room survives a short disconnect');
+  for (let i = 0; i < 36001; i++) s.tick(); // 36001 × 2.5 ms is below the 30-minute timeout.
+  assert.ok(s.engine.rooms.has(s.host.code));
+  // Clock access is injectable; advance past the production room inactivity limit.
+  const oldTime = s.engine.clock;
+  s.engine.clock = () => oldTime() + 30 * 60000 + 5000;
+  s.engine.tick();
+  assert.equal(s.engine.rooms.has(s.host.code), false, 'engine-owned bots cannot keep an abandoned room alive');
+});

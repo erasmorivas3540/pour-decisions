@@ -71,3 +71,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** Only human players could occupy connected seats, choose jinxes, pour, guess, or acknowledge the guide.
 - **Fix:** Added three host-controlled bot seats for the lobby. Bots are visibly identified as 🤖, instantly ready during onboarding, choose random offered jinx cards, aim for an absolute 70–97 target adjusted for their known handicap, and guess correctly with 40% probability. They use existing validated game actions and run inside the server's 20 Hz tick without HTTP/SSE clients or runtime dependencies.
 - **How it is tested:** Tests cover host-only bot management, player caps, readiness, turn permissions, and completion of a 1-human + 2-bot game; full `npm run check` and Node 20/22 CI matrix must pass.
+
+## October 15, 2026 — Bot seats and idle-room cleanup (Phase 5, task 9)
+
+- **Symptom:** Once bots were represented as connected engine seats, an abandoned room with bots could remain in memory indefinitely.
+- **Root cause:** The original room expiry check tested whether every seat was disconnected, and bot actions refreshed the room's last-activity clock.
+- **Fix:** Expiration considers only connected human seats, and only human actions or connection changes refresh activity. Bots may finish a game normally but cannot hold an empty room forever.
+- **How it is tested:** A fake-clock regression confirms a bot-filled room survives a short human disconnect but expires after the existing 30-minute inactivity threshold; the full engine and integration suite is re-run.

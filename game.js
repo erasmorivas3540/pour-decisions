@@ -252,6 +252,7 @@ export class GameEngine {
   connection(code, id, token, change) {
     const { room, player } = this.auth(code, id, token);
     player.connections = Math.max(0, player.connections + change);
+    if (!player.bot) room.lastActivity = this.clock();
     if (change > 0) {
       player.connectedAt = this.clock();
       player.disconnectedAt = 0;
@@ -306,7 +307,7 @@ export class GameEngine {
   action(code, id, token, type, value) {
     const { room, player } = this.auth(code, id, token);
     const now = this.clock();
-    room.lastActivity = now;
+    if (!player.bot) room.lastActivity = now;
     if (type === 'addBot' || type === 'removeBot') {
       if (room.phase !== 'lobby' || room.hostId !== id || player.bot)
         throw error('Only the host can manage bots in the lobby.');
@@ -885,7 +886,7 @@ export class GameEngine {
     const changed = [];
     for (const room of this.rooms.values()) {
       if (room.hostGoneAt) this.hostHandoff(room);
-      if (room.players.every((p) => !connected(p)) && now - room.lastActivity > 30 * 60000) {
+      if (room.players.every((p) => p.bot || !connected(p)) && now - room.lastActivity > 30 * 60000) {
         this.rooms.delete(room.code);
         continue;
       }
