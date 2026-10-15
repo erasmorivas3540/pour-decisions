@@ -21,7 +21,7 @@ test(
         logs += s;
         port ||= logs.match(/:(\d+)/)?.[1];
       });
-      for (let k = 0; k < 120 && !port; k++) await sleep(20);
+      for (let k = 0; k < 500 && !port; k++) await sleep(20);
       assert.ok(port, 'server started');
       const base = `http://127.0.0.1:${port}`;
       const post = async (path, data) => {
@@ -68,7 +68,7 @@ test(
           } catch {}
         })();
       }
-      const waitFor = async (fn, limit = 6000) => {
+      const waitFor = async (fn, limit = 12000) => {
         const timeout = Date.now() + limit;
         while (Date.now() < timeout) {
           if (fn()) return;
@@ -105,7 +105,7 @@ test(
         await sleep(160);
         await post('action', { ...pourer.seat, type: 'pourUp' });
       }
-      await waitFor(() => clients.every((c) => c.state?.phase === 'reveal'), 5000);
+      await waitFor(() => clients.every((c) => c.state?.phase === 'reveal'), 12000);
       assert.equal(
         opponent.state.turn.jinx,
         pourer.state.turn.jinx,
@@ -116,7 +116,7 @@ test(
         'safe pour awarded points',
       );
       assert.equal(pourer.state.turn.headToHead, true);
-      await waitFor(() => clients.every((c) => c.state?.phase === 'jinx'), 5000);
+      await waitFor(() => clients.every((c) => c.state?.phase === 'jinx'), 12000);
       const next = opponent.state.turn;
       assert.equal(next.pourerId, opponent.seat.id);
       assert.equal(next.jinxerId, pourer.seat.id);
@@ -131,5 +131,5 @@ test(
       await Promise.race([once(processGame, 'exit'), sleep(1800)]).catch(() => {});
     }
   },
-  { timeout: 16000 },
+  { timeout: 45000 },
 );

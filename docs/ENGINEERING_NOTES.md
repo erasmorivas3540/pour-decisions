@@ -50,3 +50,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** The test used spacing-sensitive regular expressions for the CSS selector, asset URL, and sprite dimensions.
 - **Fix:** Match the same selector, precise 16-frame asset path, and 400% × 400% sprite grid while tolerating Prettier-generated whitespace. Kept all existing asset and no-volume-marker assertions.
 - **How it is tested:** Run `npx prettier --check .` and `npm run check` on the Node.js 20 and 22 CI matrix.
+
+## October 14, 2026 — CI runner timing margins (Phase 3, task 7)
+
+- **Symptom:** HTTP/SSE integration tests previously allowed short server-start windows (as low as 2.4 seconds) and 14–25-second overall test budgets, which could cause timeouts on busy CI runners.
+- **Root cause:** The test harness made fixed startup and phase-wait assumptions despite variable process scheduling. The stream-ticket expiry test also used a 120-millisecond test-only TTL, leaving little room for ordinary scheduling delays.
+- **Fix:** Preserved ephemeral ports (`PORT=0`) and gameplay clocks, increased only test startup, phase, and per-test wait limits, and tested ticket expiration with a one-second test-only TTL and a longer expiry wait.
+- **How it is tested:** Run `npm run check` in GitHub Actions on both Node 20 and Node 22; the same SSE and security assertions must pass without altering production behavior.

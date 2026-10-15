@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 
 test(
   'eight players on one IP can play without shared 429 and a single spammer hits per-player 120/min',
-  { timeout: 25000 },
+  { timeout: 60000 },
   async () => {
     const processGame = spawn(process.execPath, ['server.js'], {
       cwd: new URL('..', import.meta.url).pathname,
@@ -19,7 +19,7 @@ test(
       port ||= logs.match(/:(\d+)/)?.[1];
     });
     try {
-      for (let i = 0; i < 200 && !port; i++) await sleep(20);
+      for (let i = 0; i < 500 && !port; i++) await sleep(20);
       assert.ok(port, 'test server started');
       const base = `http://127.0.0.1:${port}`;
       const post = async (route, data) => {

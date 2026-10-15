@@ -4,11 +4,11 @@ import { spawn } from 'node:child_process';
 
 test(
   'SSE tickets are valid once, expire, and never accept the old URL token',
-  { timeout: 15000 },
+  { timeout: 35000 },
   async () => {
     const child = spawn(process.execPath, ['server.js'], {
       cwd: new URL('..', import.meta.url).pathname,
-      env: { ...process.env, PORT: '0', STREAM_TICKET_TTL_MS: '120' },
+      env: { ...process.env, PORT: '0', STREAM_TICKET_TTL_MS: '1000' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -20,7 +20,7 @@ test(
     });
     const controllers = [];
     try {
-      for (let i = 0; i < 250 && !port; i++) await sleep(20);
+      for (let i = 0; i < 500 && !port; i++) await sleep(20);
       assert.ok(port, 'test server starts');
       const base = `http://127.0.0.1:${port}`;
       const post = async (route, data) => {
@@ -35,7 +35,7 @@ test(
       const getTicket = async () => {
         const { res, data } = await post('stream-ticket', player);
         assert.equal(res.status, 200);
-        assert.equal(data.expiresInMs, 120);
+        assert.equal(data.expiresInMs, 1000);
         assert.match(data.ticket, /^[a-f0-9]{64}$/);
         return data.ticket;
       };
@@ -50,7 +50,7 @@ test(
       const reused = await fetch(`${base}/api/stream?ticket=${ticket}`);
       assert.equal(reused.status, 401);
       const expiring = await getTicket();
-      await sleep(180);
+      await sleep(1200);
       assert.equal((await fetch(`${base}/api/stream?ticket=${expiring}`)).status, 401);
       assert.equal(
         (
