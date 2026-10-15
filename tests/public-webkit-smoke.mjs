@@ -23,7 +23,7 @@ try {
   await page.locator('[data-submit]').click();
   await page.locator('.lobby-code').waitFor({ timeout: 30000 });
   await page.locator('[data-add-bot]').click();
-  await page.locator('.seat').nth(1).waitFor({ timeout: 20000 });
+  await page.locator('.seat').nth(1).filter({ hasText: /Bot/ }).waitFor({ timeout: 20000 });
   assert.match(await page.locator('.seat').nth(1).innerText(), /Bot/);
   await page.screenshot({ path: 'release-artifacts/live-lobby-iphone-webkit.png', fullPage: true });
   await page.locator('[data-action="start"]').click();
