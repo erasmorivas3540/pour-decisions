@@ -4,11 +4,13 @@ import { readFileSync } from 'node:fs';
 import os from 'node:os';
 import { performance } from 'node:perf_hooks';
 
-const options = Object.fromEntries(process.argv.slice(2).map((arg) => {
-  const match = /^--([a-z-]+)=(\d+)$/.exec(arg);
-  if (!match) throw new Error('Expected --rooms=N or --timeout-ms=N, received ' + arg);
-  return [match[1], Number(match[2])];
-}));
+const options = Object.fromEntries(
+  process.argv.slice(2).map((arg) => {
+    const match = /^--([a-z-]+)=(\d+)$/.exec(arg);
+    if (!match) throw new Error('Expected --rooms=N or --timeout-ms=N, received ' + arg);
+    return [match[1], Number(match[2])];
+  }),
+);
 const roomCount = options.rooms ?? 20;
 const timeoutMs = options['timeout-ms'] ?? 180000;
 assert.ok(Number.isInteger(roomCount) && roomCount >= 1 && roomCount <= 100, 'rooms must be 1–100');
@@ -105,7 +107,9 @@ class Client {
     let waiter;
     const promise = new Promise((resolve, reject) => {
       waiter = {
-        predicate, resolve, reject,
+        predicate,
+        resolve,
+        reject,
         timer: setTimeout(() => {
           this.waiters.delete(waiter);
           reject(new Error('Matching SSE state did not arrive within ' + ms + 'ms'));
@@ -163,14 +167,21 @@ async function runRoom(index) {
   const byId = new Map(clients.map((c) => [c.seat.id, c]));
   try {
     await Promise.all(clients.map((c) => c.connect()));
-    await waitUntil(() => clients.every((c) =>
-      c.state?.players?.filter((p) => p.connected && !p.spectator).length === 2));
+    await waitUntil(() =>
+      clients.every(
+        (c) => c.state?.players?.filter((p) => p.connected && !p.spectator).length === 2,
+      ),
+    );
     for (let count = 1; count <= 2; count++) {
-      await action(clients[0], 'addBot', {}, (s) => s.players.filter((p) => p.bot).length === count);
+      await action(
+        clients[0],
+        'addBot',
+        {},
+        (s) => s.players.filter((p) => p.bot).length === count,
+      );
     }
     await action(clients[0], 'start', {}, (s) => s.phase === 'howto');
-    await action(clients[0], 'ready', {}, (s) =>
-      s.players.find((p) => p.id === host.id)?.ready);
+    await action(clients[0], 'ready', {}, (s) => s.players.find((p) => p.id === host.id)?.ready);
     await action(clients[1], 'ready', {}, (s) => s.phase === 'pour');
     const deadline = performance.now() + timeoutMs;
     while (performance.now() < deadline) {
@@ -191,16 +202,19 @@ async function runRoom(index) {
         const chosen = actor.state?.turn?.cards[0]?.id;
         if (chosen) {
           const number = turn.turnNumber;
-          await action(actor, 'pickJinx', { jinx: chosen }, (v) =>
-            v.turn?.turnNumber === number && v.phase === 'pour');
+          await action(
+            actor,
+            'pickJinx',
+            { jinx: chosen },
+            (v) => v.turn?.turnNumber === number && v.phase === 'pour',
+          );
           continue;
         }
       }
       if (s.phase === 'pour' && byId.has(turn?.pourerId) && !turn.started) {
         const actor = byId.get(turn.pourerId);
         const number = turn.turnNumber;
-        await action(actor, 'pourDown', {}, (v) =>
-          v.turn?.turnNumber === number && v.turn.started);
+        await action(actor, 'pourDown', {}, (v) => v.turn?.turnNumber === number && v.turn.started);
         continue;
       }
       if (s.phase === 'guess') {
@@ -208,20 +222,38 @@ async function runRoom(index) {
         for (const actor of clients) {
           const own = actor.state;
           const t = own?.turn;
-          if (!t || t.turnNumber !== turn.turnNumber || t.headToHead
-            || t.pourerId === actor.seat.id || t.jinxerId === actor.seat.id
-            || t.guessed || !t.options?.length) continue;
+          if (
+            !t ||
+            t.turnNumber !== turn.turnNumber ||
+            t.headToHead ||
+            t.pourerId === actor.seat.id ||
+            t.jinxerId === actor.seat.id ||
+            t.guessed ||
+            !t.options?.length
+          )
+            continue;
           const number = t.turnNumber;
-          await action(actor, 'guess', { jinx: t.options[0].id }, (v) =>
-            v.turn?.turnNumber === number && v.turn.guessed);
+          await action(
+            actor,
+            'guess',
+            { jinx: t.options[0].id },
+            (v) => v.turn?.turnNumber === number && v.turn.guessed,
+          );
           didGuess = true;
         }
         if (didGuess) continue;
       }
       await sleep(30);
     }
-    throw new Error('Room ' + host.code + ' timed out at phase ' +
-      clients[0].state?.phase + ' with ' + clients[0].state?.spills + ' spills');
+    throw new Error(
+      'Room ' +
+        host.code +
+        ' timed out at phase ' +
+        clients[0].state?.phase +
+        ' with ' +
+        clients[0].state?.spills +
+        ' spills',
+    );
   } finally {
     for (const client of clients) client.close();
   }
@@ -234,9 +266,13 @@ const server = spawn(process.execPath, ['server.js'], {
 });
 let logs = '';
 server.stdout.setEncoding('utf8');
-server.stdout.on('data', (chunk) => { logs += chunk; });
+server.stdout.on('data', (chunk) => {
+  logs += chunk;
+});
 server.stderr.setEncoding('utf8');
-server.stderr.on('data', (chunk) => { console.error('server:', chunk.trim()); });
+server.stderr.on('data', (chunk) => {
+  console.error('server:', chunk.trim());
+});
 const memoryPoll = setInterval(() => sampleMemory(server.pid), 200);
 try {
   await waitUntil(() => /0\.0\.0\.0:\d+/.test(logs), 12000);
