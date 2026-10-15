@@ -109,6 +109,7 @@ export const JINXES = [
 export const JINX_BY_ID = Object.fromEntries(JINXES.map((j) => [j.id, j]));
 const AVATARS = ['🦊', '🐸', '🐻', '🐱', '🐼', '🐨', '🦄', '🐙', '🐧', '🐯', '🦖', '🐝'];
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const BOT_NAMES = ['🤖 Bot Ava', '🤖 Bot Leo', '🤖 Bot Mia'];
 // Measured pacing: the shared cup now fills four times more slowly than at launch.
 export const POUR_RATE = 3;
 export const POUR_MAX_MS = 12000;
@@ -187,6 +188,7 @@ export class GameEngine {
       spectator,
       waitingSeat: false,
       ready: false,
+      bot: false,
       lastJinx: null,
     };
     room.players.push(p);
@@ -250,6 +252,7 @@ export class GameEngine {
   connection(code, id, token, change) {
     const { room, player } = this.auth(code, id, token);
     player.connections = Math.max(0, player.connections + change);
+    if (!player.bot) room.lastActivity = this.clock();
     if (change > 0) {
       player.connectedAt = this.clock();
       player.disconnectedAt = 0;
@@ -273,7 +276,9 @@ export class GameEngine {
       return;
     }
     if (this.clock() - room.hostGoneAt < this.ms(2000)) return;
-    const next = room.players.find((p) => playable(p)) || room.players.find((p) => connected(p));
+    const next =
+      room.players.find((p) => playable(p) && !p.bot) ||
+      room.players.find((p) => connected(p) && !p.bot);
     if (next) {
       room.hostId = next.id;
       room.hostGoneAt = 0;
@@ -302,8 +307,13 @@ export class GameEngine {
   action(code, id, token, type, value) {
     const { room, player } = this.auth(code, id, token);
     const now = this.clock();
-    room.lastActivity = now;
-    if (type === 'settings') {
+    if (!player.bot) room.lastActivity = now;
+    if (type === 'addBot' || type === 'removeBot') {
+      if (room.phase !== 'lobby' || room.hostId !== id || player.bot)
+        throw error('Only the host can manage bots in the lobby.');
+      if (type === 'addBot') this.addBot(room);
+      else this.removeBot(room, value?.id);
+    } else if (type === 'settings') {
       if (room.phase !== 'lobby' || room.hostId !== id)
         throw error('Only the host can change lobby settings.');
       if (![3, 5, 7].includes(value?.spillLimit)) throw error('Choose 3, 5, or 7 spills.');
@@ -314,7 +324,7 @@ export class GameEngine {
         throw error('At least 2 connected players are needed.');
       room.phase = 'howto';
       room.deadline = 0; // Instructions have no timer. Every seated player must opt in.
-      room.players.forEach((p) => (p.ready = false));
+      room.players.forEach((p) => (p.ready = !!p.bot));
     } else if (type === 'ready') {
       if (room.phase !== 'howto') throw error('The game is no longer on instructions.');
       player.ready = true;
@@ -350,6 +360,69 @@ export class GameEngine {
       this.rematch(room);
     } else throw error('Unknown action.');
     return room;
+  }
+  addBot(room) {
+    if (room.players.filter((p) => p.bot).length >= 3)
+      throw error('This room already has three bots.');
+    if (room.players.filter((p) => !p.spectator).length >= 8)
+      throw error('All eight player seats are occupied.');
+    const name = BOT_NAMES.find((n) => !room.players.some((p) => p.name === n));
+    if (!name) throw error('No bot seats remain.');
+    this.makePlayer(room, name, '🦊');
+    const bot = room.players.at(-1);
+    bot.bot = true;
+    bot.avatar = '🤖';
+    bot.connections = 1; // Engine-owned seat; never creates an HTTP/SSE connection.
+    bot.connectedAt = this.clock();
+    return bot;
+  }
+  removeBot(room, botId) {
+    const index = room.players.findIndex((p) => p.id === botId && p.bot);
+    if (index < 0) throw error('Choose a bot currently in the lobby.');
+    room.players.splice(index, 1);
+  }
+  // Bots use the same validated actions and server-authoritative 20 Hz tick as humans.
+  driveBots(room) {
+    const t = room.turn;
+    if (!t || !['jinx', 'pour', 'guess'].includes(room.phase)) return false;
+    const botFor = (id) => room.players.find((p) => p.id === id && p.bot);
+    if (room.phase === 'jinx') {
+      const bot = botFor(t.jinxerId);
+      if (!bot) return false;
+      const jinx = t.offered[Math.floor(this.random() * t.offered.length)];
+      this.action(room.code, bot.id, bot.token, 'pickJinx', { jinx });
+      return true;
+    }
+    if (room.phase === 'pour') {
+      const bot = botFor(t.pourerId);
+      if (!bot || t.dripping || t.stopRequested || t.botCommitted) return false;
+      if (t.botTarget === undefined) {
+        // Absolute target 70–97, reduced for difficult jinxes the bot knows.
+        const margin =
+          { heavy: 2.5, fire: 1, ketchup: 2, butter: 8, shaky: 2, opposite: 1 }[t.jinx] || 0;
+        t.botTarget = Math.max(70, Math.min(97, 70 + this.random() * 27 - margin));
+      }
+      if (!t.started) {
+        this.action(room.code, bot.id, bot.token, 'pourDown');
+        return true;
+      }
+      if (t.added >= 6 - 1e-6 && room.cup >= t.botTarget) {
+        t.botCommitted = true;
+        this.action(room.code, bot.id, bot.token, t.jinx === 'opposite' ? 'stop' : 'pourUp');
+        return true;
+      }
+      return false;
+    }
+    let changed = false;
+    for (const bot of room.players.filter((p) => p.bot && !p.spectator)) {
+      if (bot.id === t.pourerId || bot.id === t.jinxerId || t.guesses[bot.id]) continue;
+      const wrong = t.options.filter((id) => id !== t.jinx);
+      const correct = this.random() < 0.4;
+      const jinx = correct ? t.jinx : wrong[Math.floor(this.random() * wrong.length)];
+      this.action(room.code, bot.id, bot.token, 'guess', { jinx });
+      changed = true;
+    }
+    return changed;
   }
   startRounds(room) {
     room.turnOrder = this.shuffle(room.players.filter((p) => !p.spectator).map((p) => p.id));
@@ -813,7 +886,10 @@ export class GameEngine {
     const changed = [];
     for (const room of this.rooms.values()) {
       if (room.hostGoneAt) this.hostHandoff(room);
-      if (room.players.every((p) => !connected(p)) && now - room.lastActivity > 30 * 60000) {
+      if (
+        room.players.every((p) => p.bot || !connected(p)) &&
+        now - room.lastActivity > 30 * 60000
+      ) {
         this.rooms.delete(room.code);
         continue;
       }
@@ -827,6 +903,7 @@ export class GameEngine {
         }
         continue;
       }
+      if (this.driveBots(room)) changed.push(room.code);
       if (room.phase === 'jinx' && now >= room.deadline) {
         this.chooseJinx(room, this.sample(room.turn.offered, 1)[0]);
         changed.push(room.code);
@@ -965,6 +1042,7 @@ export class GameEngine {
         spectator: x.spectator,
         waitingSeat: x.waitingSeat,
         ready: x.ready,
+        bot: !!x.bot,
       })),
       winner: room.winner,
       duel: room.duel

@@ -309,7 +309,7 @@ function seatList() {
     (_, i) => {
       const p = seated[i];
       return p
-        ? `<div class="seat"><span class="face">${p.avatar}</span><span>${escapeHTML(p.name)} ${p.id === r.hostId ? '👑' : ''}${!p.connected ? '<small style="display:block;color:#b35d53">reconnecting…</small>' : ''}</span></div>`
+        ? `<div class="seat"><span class="face">${p.avatar}</span><span>${escapeHTML(p.name)} ${p.id === r.hostId ? '👑' : ''}${!p.connected ? '<small style="display:block;color:#b35d53">reconnecting…</small>' : ''}</span>${p.bot && r.hostId === r.me ? `<button class="mini-btn" data-remove-bot="${p.id}" aria-label="Remove ${escapeHTML(p.name)}">✕</button>` : ''}</div>`
         : `<div class="seat empty">＋ Waiting for a friend…</div>`;
     },
   ).join('')}</div>`;
@@ -320,7 +320,7 @@ function lobby() {
   const seated = r.players.filter((p) => !p.spectator);
   const live = seated.filter((p) => p.connected).length;
   const isHost = r.hostId === r.me;
-  return `<div class="gamehead center"><span class="pill">🎉 PARTY LOBBY</span><h2>Your crew is assembling!</h2><p>Send the code or invite link to friends on any device.</p></div><div class="card lobby-card"><div class="center"><span class="eyebrow muted">YOUR ROOM CODE</span><div class="lobby-code">${r.code}</div><button class="btn btn-blue btn-small" data-copy>🔗 Copy invite link</button></div><div style="margin:25px 0 16px" class="row between"><h3>Players (${live}/8 online)</h3><span class="pill mint">${live >= 2 ? '✓ READY TO GO' : 'NEED 2 TO PLAY'}</span></div>${seatList()}${me?.spectator ? '<div class="notice" style="margin-top:15px">👀 You joined as a spectator. You can guess on upcoming turns, and may take a seat at the next new cup if space opens.</div>' : ''}${isHost ? `<div style="margin-top:25px"><h3>⚙️ Host settings</h3><p class="muted" style="margin:8px 0">End the game after how many spills?</p><div class="select-row">${[3, 5, 7].map((n) => `<button class="choice-pill ${n === r.settings.spillLimit ? 'active' : ''}" data-limit="${n}" aria-pressed="${n === r.settings.spillLimit}">${n} spills</button>`).join('')}</div><button class="btn btn-primary full" data-action="start" ${live < 2 ? 'disabled' : ''}>🫗 Start the game →</button><p class="center muted" style="font-size:.8rem;margin-top:14px">${live >= 2 ? 'Everyone sees the rules before the first pour.' : `Waiting for ${2 - live} more connected player${2 - live === 1 ? '' : 's'}…`}</p></div>` : `<div class="notice" style="margin-top:23px;text-align:center">🪄 ${nameFor(r.hostId)} is the host and will start once everyone arrives.</div>`}</div>`;
+  return `<div class="gamehead center"><span class="pill">🎉 PARTY LOBBY</span><h2>Your crew is assembling!</h2><p>Send the code or invite link to friends on any device.</p></div><div class="card lobby-card"><div class="center"><span class="eyebrow muted">YOUR ROOM CODE</span><div class="lobby-code">${r.code}</div><button class="btn btn-blue btn-small" data-copy>🔗 Copy invite link</button></div><div style="margin:25px 0 16px" class="row between"><h3>Players (${live}/8 online)</h3><span class="pill mint">${live >= 2 ? '✓ READY TO GO' : 'NEED 2 TO PLAY'}</span></div>${seatList()}${me?.spectator ? '<div class="notice" style="margin-top:15px">👀 You joined as a spectator. You can guess on upcoming turns, and may take a seat at the next new cup if space opens.</div>' : ''}${isHost ? `<div style="margin-top:25px"><h3>⚙️ Host settings</h3><div class="row between" style="margin:12px 0"><span class="muted">🤖 Bot opponents (${r.players.filter((p) => p.bot).length}/3)</span><button class="btn btn-white btn-small" data-add-bot ${r.players.filter((p) => p.bot).length >= 3 || seated.length >= 8 ? 'disabled' : ''}>＋ Add bot</button></div><p class="muted" style="margin:8px 0">End the game after how many spills?</p><div class="select-row">${[3, 5, 7].map((n) => `<button class="choice-pill ${n === r.settings.spillLimit ? 'active' : ''}" data-limit="${n}" aria-pressed="${n === r.settings.spillLimit}">${n} spills</button>`).join('')}</div><button class="btn btn-primary full" data-action="start" ${live < 2 ? 'disabled' : ''}>🫗 Start the game →</button><p class="center muted" style="font-size:.8rem;margin-top:14px">${live >= 2 ? 'Everyone sees the rules before the first pour.' : `Waiting for ${2 - live} more connected player${2 - live === 1 ? '' : 's'}…`}</p></div>` : `<div class="notice" style="margin-top:23px;text-align:center">🪄 ${nameFor(r.hostId)} is the host and will start once everyone arrives.</div>`}</div>`;
 }
 function countdown() {
   return `<span class="timer" data-countdown>⏱ ${seconds(relativeTimer())}</span>`;
@@ -773,6 +773,9 @@ document.addEventListener('click', (e) => {
     state.renderKey = '';
     return render();
   }
+  if (el.hasAttribute('data-add-bot')) return apiAction('addBot');
+  if (el.hasAttribute('data-remove-bot'))
+    return apiAction('removeBot', { id: el.dataset.removeBot });
   if (el.hasAttribute('data-limit'))
     return apiAction('settings', { spillLimit: Number(el.dataset.limit) });
   if (el.hasAttribute('data-action'))
