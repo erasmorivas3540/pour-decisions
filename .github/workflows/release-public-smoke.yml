@@ -1,0 +1,20 @@
+name: Temporary production release smoke test
+on:
+  push:
+    branches: [release-public-smoke]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify deployed production site and multiplayer actions
+        env:
+          TEST_URL: https://pour-decisions-ozbh.onrender.com
+        run: node tests/public-live-smoke.mjs
