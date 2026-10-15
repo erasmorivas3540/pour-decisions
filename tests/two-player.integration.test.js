@@ -42,7 +42,7 @@ test(
         const client = { controller, seat, state: null, history: [] };
         clients.push(client);
         const response = await fetch(
-          `${base}/api/stream?code=${seat.code}&id=${seat.id}&token=${seat.token}`,
+          `${base}/api/stream?ticket=${encodeURIComponent((await post('stream-ticket', seat)).ticket)}`,
           { signal: controller.signal },
         );
         assert.equal(response.status, 200);

@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,6 +58,27 @@ async function body(req) {
     throw Object.assign(new Error('Invalid JSON.'), { status: 400 });
   }
 }
+// A short-lived, single-use capability keeps long-lived seat credentials out of GET URLs.
+const streamTickets = new Map();
+const ticketLifetimeMs = Number(process.env.STREAM_TICKET_TTL_MS || 30000);
+function issueStreamTicket(room, player) {
+  const ticket = randomBytes(32).toString('hex');
+  streamTickets.set(ticket, {
+    code: room.code,
+    id: player.id,
+    token: player.token,
+    expiresAt: Date.now() + ticketLifetimeMs,
+  });
+  return ticket;
+}
+function consumeStreamTicket(ticket) {
+  const entry = ticket && streamTickets.get(ticket);
+  if (ticket) streamTickets.delete(ticket); // Consumption precedes authorization or expiry checks.
+  if (!entry || entry.expiresAt <= Date.now()) {
+    throw Object.assign(new Error('Invalid or expired stream ticket.'), { status: 401 });
+  }
+  return entry;
+}
 const rateLimit = new Map();
 function limited(req) {
   const ip = req.socket.remoteAddress || '';
@@ -73,9 +95,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/health')
       return json(res, 200, { ok: true, service: 'pour-decisions' });
     if (req.method === 'GET' && url.pathname === '/api/stream') {
-      const code = (url.searchParams.get('code') || '').toUpperCase(),
-        id = url.searchParams.get('id'),
-        token = url.searchParams.get('token');
+      if (url.searchParams.has('token') || url.searchParams.has('code') || url.searchParams.has('id')) {
+        return json(res, 401, { error: 'Use a stream ticket instead.' });
+      }
+      const { code, id, token } = consumeStreamTicket(url.searchParams.get('ticket'));
       const { room } = game.auth(code, id, token);
       res.writeHead(200, {
         ...headers,
@@ -120,6 +143,10 @@ const server = http.createServer(async (req, res) => {
           token: player.token,
           name: player.name,
         });
+      }
+      if (url.pathname === '/api/stream-ticket') {
+        const { room, player } = game.auth(b.code, b.id, b.token);
+        return json(res, 200, { ticket: issueStreamTicket(room, player), expiresInMs: ticketLifetimeMs });
       }
       if (url.pathname === '/api/action') {
         const room = game.action(b.code, b.id, b.token, b.type, b.value || {});
@@ -169,6 +196,7 @@ setInterval(() => {
     }
   }
   const now = Date.now();
+  for (const [ticket, session] of streamTickets) if (session.expiresAt <= now) streamTickets.delete(ticket);
   for (const [ip, v] of rateLimit) if (now - v.at > 120000) rateLimit.delete(ip);
 }, 250).unref();
 server.listen(PORT, '0.0.0.0', () =>

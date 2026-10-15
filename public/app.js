@@ -125,12 +125,28 @@ async function createJoin(mode) {
     if (button) button.disabled = false;
   }
 }
-function connect() {
+let streamAttempt = 0;
+let reconnectTimer = null;
+async function connect() {
   if (!state.session) return;
+
+  const attempt = ++streamAttempt;
+  clearTimeout(reconnectTimer);
   state.source?.close();
+  state.source = null;
   const s = state.session;
-  const url = `/api/stream?code=${encodeURIComponent(s.code)}&id=${encodeURIComponent(s.id)}&token=${encodeURIComponent(s.token)}`;
-  const source = new EventSource(url);
+  let ticket;
+  try {
+    ({ ticket } = await request('stream-ticket', s));
+  } catch (e) {
+    if (attempt !== streamAttempt) return;
+    state.connected = false;
+    updateVitals();
+    reconnectTimer = setTimeout(connect, 1500);
+    return;
+  }
+  if (attempt !== streamAttempt || state.session !== s) return;
+  const source = new EventSource(`/api/stream?ticket=${encodeURIComponent(ticket)}`);
   state.source = source;
   source.addEventListener('state', (event) => {
     if (source !== state.source) return;
@@ -154,7 +170,10 @@ function connect() {
   source.onerror = () => {
     if (source !== state.source) return;
     state.connected = false;
+    source.close();
+    state.source = null;
     updateVitals();
+    if (attempt === streamAttempt) reconnectTimer = setTimeout(connect, 1500);
   };
 }
 function onPhase(room, old) {
@@ -169,6 +188,8 @@ function onPhase(room, old) {
   if (old?.phase === 'pour' && room.phase !== 'pour') state.held = false;
 }
 function leaveRoom() {
+  streamAttempt++;
+  clearTimeout(reconnectTimer);
   state.source?.close();
   state.source = null;
   state.session = null;

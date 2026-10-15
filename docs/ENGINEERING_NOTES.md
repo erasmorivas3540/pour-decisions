@@ -29,3 +29,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** Comparator-based shuffling and module-level global randomness.
 - **Fix:** Copy-preserving Fisher–Yates and sampling methods that consume `this.random` for all shuffle and selection paths.
 - **How it is tested:** Seeded 20,000-trial position-frequency checks (23–27% per cell), deterministic replay checks and immutability assertion, plus `npm run check`.
+
+## October 14, 2026 — Reusable session token in SSE URL (Phase 2, task 5)
+
+- **Symptom:** The EventSource GET URL contained a player's durable seat token, which can be retained in HTTP/proxy access logs.
+- **Root cause:** EventSource cannot set a custom Authorization header, so the client embedded the credential into the query string.
+- **Fix:** Authenticated POST `/api/stream-ticket` issues an unpredictable, one-time 30-second capability (test-only TTL override). GET `/api/stream?ticket=` consumes it before establishing SSE, rejects legacy query credentials, and the browser fetches a fresh ticket after every reconnection.
+- **How it is tested:** Ticket endpoint test covers valid stream, replay/reuse, expiry, missing ticket, old token URL rejection, unauthorized issuance, and fresh reconnect; existing two-/three-player SSE integration tests use tickets.
