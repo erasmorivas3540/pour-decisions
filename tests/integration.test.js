@@ -39,7 +39,7 @@ async function integration() {
     sessions.push(await post('join', { code: sessions[0].code, name: 'Third', avatar: '🐱' }));
     for (const s of sessions) {
       const controller = new AbortController();
-      const {ticket} = await post('stream-ticket', s);
+      const { ticket } = await post('stream-ticket', s);
       const url = `${base}/api/stream?ticket=${encodeURIComponent(ticket)}`;
       const res = await fetch(url, { signal: controller.signal });
       assert.equal(res.status, 200);

@@ -43,7 +43,6 @@ Two players can now start immediately. One pours while the other watches. After 
 
 **No rules timer:** At the beginning of a game, every player can read all three illustrated rule slides for as long as they need. The server starts gameplay only when all connected players have tapped **I’m ready**. There is no automatic rules-screen timeout.
 
-
 1. **Jinx:** After the first turn, the previous pourer picks 1 of 3 secret jinx cards for the next pourer. Only those two see the true jinx before reveal. The first turn gets a randomly selected jinx.
 2. **Pour:** Hold to pour and release to finish. Each turn adds at least 6 units, and going over 100 spills the cup. Start within 10 seconds; each active pour lasts up to 12 seconds (Eyedropper lasts up to 8). Normal pouring is 3 units/second, four times slower than the original build; Fire Hose is 9 units/second and Eyedropper is 1 unit/second. **Opposite Day** automatically pours and holding pauses the flow; press **Finish this pour** to stop it.
 3. **Guess:** Other players choose from four possible jinxes while watching; guesses lock five seconds after pouring ends. Correct guesses earn +5. The pourer earns +2 per wrong guess.
@@ -75,7 +74,7 @@ POST /api/action   ──────────>  Validate actor, phase and pa
                                Tick timers, water physics, guesses and scores
 ```
 
-**Sensitive role data is not broadcast** to guessers. A guessed jinx is only available in a viewer's state after reveal; the true option appears mixed with three decoys. Players each have an unguessable ID + bearer token in their own browser storage. SSE is authorized by that token, not merely the room code. Note: the visual foam effect of *Soda Can* is visible to everyone, as specified.
+**Sensitive role data is not broadcast** to guessers. A guessed jinx is only available in a viewer's state after reveal; the true option appears mixed with three decoys. Players each have an unguessable ID + bearer token in their own browser storage. SSE is authorized by that token, not merely the room code. Note: the visual foam effect of _Soda Can_ is visible to everyone, as specified.
 
 ### Project files
 

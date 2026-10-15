@@ -99,7 +99,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/health')
       return json(res, 200, { ok: true, service: 'pour-decisions' });
     if (req.method === 'GET' && url.pathname === '/api/stream') {
-      if (url.searchParams.has('token') || url.searchParams.has('code') || url.searchParams.has('id')) {
+      if (
+        url.searchParams.has('token') ||
+        url.searchParams.has('code') ||
+        url.searchParams.has('id')
+      ) {
         return json(res, 401, { error: 'Use a stream ticket instead.' });
       }
       const { code, id, token } = consumeStreamTicket(url.searchParams.get('ticket'));
@@ -153,7 +157,10 @@ const server = http.createServer(async (req, res) => {
       if (url.pathname === '/api/stream-ticket') {
         const { room, player } = game.auth(b.code, b.id, b.token);
         limited(playerRateLimit, player.id, 120);
-        return json(res, 200, { ticket: issueStreamTicket(room, player), expiresInMs: ticketLifetimeMs });
+        return json(res, 200, {
+          ticket: issueStreamTicket(room, player),
+          expiresInMs: ticketLifetimeMs,
+        });
       }
       if (url.pathname === '/api/action') {
         const { player } = game.auth(b.code, b.id, b.token);
@@ -205,7 +212,8 @@ setInterval(() => {
     }
   }
   const now = Date.now();
-  for (const [ticket, session] of streamTickets) if (session.expiresAt <= now) streamTickets.delete(ticket);
+  for (const [ticket, session] of streamTickets)
+    if (session.expiresAt <= now) streamTickets.delete(ticket);
   for (const [ip, v] of ipRateLimit) if (now - v.at > 120000) ipRateLimit.delete(ip);
   for (const [id, v] of playerRateLimit) if (now - v.at > 120000) playerRateLimit.delete(id);
 }, 250).unref();
