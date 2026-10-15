@@ -226,3 +226,61 @@ async function runRoom(index) {
     for (const client of clients) client.close();
   }
 }
+const start = performance.now();
+const server = spawn(process.execPath, ['server.js'], {
+  cwd: new URL('..', import.meta.url).pathname,
+  env: { ...process.env, PORT: '0', GAME_TIME_SCALE: '0.05' },
+  stdio: ['ignore', 'pipe', 'pipe'],
+});
+let logs = '';
+server.stdout.setEncoding('utf8');
+server.stdout.on('data', (chunk) => { logs += chunk; });
+server.stderr.setEncoding('utf8');
+server.stderr.on('data', (chunk) => { console.error('server:', chunk.trim()); });
+const memoryPoll = setInterval(() => sampleMemory(server.pid), 200);
+try {
+  await waitUntil(() => /0\.0\.0\.0:\d+/.test(logs), 12000);
+  const port = Number(logs.match(/0\.0\.0\.0:(\d+)/)[1]);
+  base = 'http://127.0.0.1:' + port;
+  assert.equal((await fetch(base + '/health')).status, 200);
+  const rooms = Array.from({ length: roomCount }, (_, i) => runRoom(i));
+  const settled = await Promise.allSettled(rooms);
+  for (const result of settled) {
+    if (result.status === 'rejected') {
+      stats.errors++;
+      console.error('Room failed:', result.reason?.stack || result.reason);
+    }
+  }
+} catch (error) {
+  stats.errors++;
+  console.error('Load test failed:', error.stack || error);
+} finally {
+  clearInterval(memoryPoll);
+  sampleMemory(server.pid);
+  server.kill('SIGTERM');
+}
+const result = {
+  date: new Date().toISOString(),
+  machine,
+  command: 'npm run loadtest -- --rooms=' + roomCount,
+  roomsRequested: roomCount,
+  roomsCompleted: stats.completed,
+  humansPerRoom: 2,
+  botsPerRoom: 2,
+  actions: stats.actions,
+  errors: stats.errors,
+  sseMessages: stats.sseMessages,
+  latencySamples: stats.latencies.length,
+  latencyMs: {
+    p50: percentile(stats.latencies, 50),
+    p95: percentile(stats.latencies, 95),
+    max: stats.latencies.length ? Number(Math.max(...stats.latencies).toFixed(2)) : null,
+  },
+  serverPeakRssMiB: peakServerRssMiB ? Number(peakServerRssMiB.toFixed(2)) : null,
+  harnessPeakRssMiB: Number(peakHarnessRssMiB.toFixed(2)),
+  elapsedSeconds: Number(((performance.now() - start) / 1000).toFixed(2)),
+};
+console.log('LOAD_TEST_RESULT ' + JSON.stringify(result));
+if (stats.errors || stats.completed !== roomCount || stats.latencies.length !== stats.actions) {
+  process.exitCode = 1;
+}
