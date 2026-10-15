@@ -80,8 +80,11 @@ try {
   const js = await response('/app.js');
   assert.equal(js.status, 200);
   const code = await js.text();
-  for (const feature of ['data-add-bot', 'data-replay-open', 'stream-ticket', 'overhead-water-sprites-16.webp'])
+  for (const feature of ['data-add-bot', 'data-replay-open', 'stream-ticket'])
     assert.ok(code.includes(feature), 'deployed client includes ' + feature);
+  const css = await response('/style.css');
+  assert.equal(css.status, 200);
+  assert.match(await css.text(), /overhead-water-sprites-16\.webp/);
   const sprite = await response('/assets/overhead-water-sprites-16.webp');
   assert.equal(sprite.status, 200);
   assert.match(sprite.headers.get('content-type'), /image\/webp/);
