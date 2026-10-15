@@ -1,5 +1,7 @@
 # 🫗 Pour Decisions
 
+[![CI](https://github.com/erasmorivas3540/pour-decisions/actions/workflows/ci.yml/badge.svg)](https://github.com/erasmorivas3540/pour-decisions/actions/workflows/ci.yml)
+
 **A real, server-authoritative, multiplayer party game.** Two to eight friends join the same room on separate phones or laptops, secretly jinx one another, carefully fill a shared cup, and try to identify the jinx. No login or install.
 
 ![Actual game UI preview](artwork/cover.png)
