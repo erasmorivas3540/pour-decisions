@@ -23,7 +23,7 @@ The test launched `server.js` on an ephemeral localhost port with `GAME_TIME_SCA
 | Latency p50                                 |        1.56 ms |
 | Latency p95                                 |       11.30 ms |
 | Latency max                                 |       46.14 ms |
-| Server peak resident memory (Linux `VmHWM`) |     93.49 MiB |
+| Server peak resident memory (Linux `VmHWM`) |      93.49 MiB |
 | Load-harness peak resident memory           |     126.38 MiB |
 | Elapsed runtime                             |  51.13 seconds |
 
@@ -38,7 +38,6 @@ Percentiles use the nearest-rank method on **successful HTTP action → matching
 - Node.js: v22.23.3
 
 An [earlier measurement workflow](https://github.com/erasmorivas3540/pour-decisions/actions/runs/38757020224) also executed a separate one-room smoke test using `npm run loadtest -- --rooms=1 --timeout-ms=90000`; it completed successfully. This report focuses on the newer default 20-room measurement.
-
 
 ### Previous measured run — October 15, 2026 (UTC)
 
