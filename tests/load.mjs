@@ -156,3 +156,73 @@ async function action(client, type, value, matches) {
   assert.ok(latency >= 0, 'monotonic POST-to-SSE timing');
   stats.latencies.push(latency);
 }
+async function runRoom(index) {
+  const host = await api('create', { name: 'Host' + index });
+  const guest = await api('join', { code: host.code, name: 'Guest' + index });
+  const clients = [new Client(host), new Client(guest)];
+  const byId = new Map(clients.map((c) => [c.seat.id, c]));
+  try {
+    await Promise.all(clients.map((c) => c.connect()));
+    await waitUntil(() => clients.every((c) =>
+      c.state?.players?.filter((p) => p.connected && !p.spectator).length === 2));
+    for (let count = 1; count <= 2; count++) {
+      await action(clients[0], 'addBot', {}, (s) => s.players.filter((p) => p.bot).length === count);
+    }
+    await action(clients[0], 'start', {}, (s) => s.phase === 'howto');
+    await action(clients[0], 'ready', {}, (s) =>
+      s.players.find((p) => p.id === host.id)?.ready);
+    await action(clients[1], 'ready', {}, (s) => s.phase === 'pour');
+    const deadline = performance.now() + timeoutMs;
+    while (performance.now() < deadline) {
+      const s = clients[0].state;
+      if (!s) {
+        await sleep(30);
+        continue;
+      }
+      if (s.phase === 'gameover') {
+        assert.equal(s.spills, 3, 'full game must have exactly three spills');
+        assert.ok(s.winner, 'a winner is announced');
+        stats.completed++;
+        return;
+      }
+      const turn = s.turn;
+      if (s.phase === 'jinx' && byId.has(turn?.jinxerId)) {
+        const actor = byId.get(turn.jinxerId);
+        const chosen = actor.state?.turn?.cards[0]?.id;
+        if (chosen) {
+          const number = turn.turnNumber;
+          await action(actor, 'pickJinx', { jinx: chosen }, (v) =>
+            v.turn?.turnNumber === number && v.phase === 'pour');
+          continue;
+        }
+      }
+      if (s.phase === 'pour' && byId.has(turn?.pourerId) && !turn.started) {
+        const actor = byId.get(turn.pourerId);
+        const number = turn.turnNumber;
+        await action(actor, 'pourDown', {}, (v) =>
+          v.turn?.turnNumber === number && v.turn.started);
+        continue;
+      }
+      if (s.phase === 'guess') {
+        let didGuess = false;
+        for (const actor of clients) {
+          const own = actor.state;
+          const t = own?.turn;
+          if (!t || t.turnNumber !== turn.turnNumber || t.headToHead
+            || t.pourerId === actor.seat.id || t.jinxerId === actor.seat.id
+            || t.guessed || !t.options?.length) continue;
+          const number = t.turnNumber;
+          await action(actor, 'guess', { jinx: t.options[0].id }, (v) =>
+            v.turn?.turnNumber === number && v.turn.guessed);
+          didGuess = true;
+        }
+        if (didGuess) continue;
+      }
+      await sleep(30);
+    }
+    throw new Error('Room ' + host.code + ' timed out at phase ' +
+      clients[0].state?.phase + ' with ' + clients[0].state?.spills + ' spills');
+  } finally {
+    for (const client of clients) client.close();
+  }
+}
