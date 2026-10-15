@@ -1,4 +1,5 @@
 name: Temporary Phase 5 bots verification
+# bot room lifecycle validation
 on:
   push:
     branches: [phase5-bots-formatter]
