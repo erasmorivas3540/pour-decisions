@@ -484,6 +484,49 @@ function openReplay() {
   state.renderKey = '';
   render();
 }
+function replayOverlay() {
+  const view = state.replayViewing;
+  if (!view) return '';
+  const first = view.data.samples[0];
+  const duration = view.data.samples.at(-1)?.t || 0;
+  const level = state.reduceMotion ? view.data.finalLevel : first.level;
+  const control = state.reduceMotion
+    ? '<span class="muted">Reduced motion · final frame</span>'
+    : '<button class="btn btn-white btn-small" data-replay-speed>Speed: ' + view.speed + '× · toggle</button>';
+  return '<div class="replay-shade" role="dialog" aria-modal="true" aria-label="Watch the spill replay">' +
+    '<div class="replay-panel"><div class="row between"><div><h2>💦 Spill replay</h2>' +
+    '<p class="muted">' + escapeHTML(view.pourerName) + ' · ' + escapeHTML(view.jinxName) +
+    '</p></div><button class="mini-btn" data-replay-close aria-label="Close replay">✕</button></div>' +
+    '<div class="replay-stage">' + cupScene(level, { camera: 'side' }) + '</div>' +
+    '<div class="row between replay-controls"><span class="pill blue" data-replay-time>0.0 / ' +
+    (duration / 1000).toFixed(1) + 's</span><strong data-replay-level>' + level.toFixed(1) +
+    ' units</strong></div><div class="row between replay-controls">' +
+    '<span class="muted" data-replay-event aria-live="off">Watch the water rise</span>' +
+    control + '</div><p class="muted replay-note">The live game continues while you watch.</p></div></div>';
+}
+function updateReplay() {
+  const view = state.replayViewing;
+  const overlay = $('.replay-shade');
+  if (!view || !overlay) return;
+  const duration = view.data.samples.at(-1)?.t || 0;
+  const elapsed = replayElapsed(view);
+  const frame = replayFrameAt(view.data, elapsed);
+  const stage = overlay.querySelector('[data-cup-stage]');
+  const water = stage?.querySelector('[data-water]');
+  if (water) water.style.height = Math.max(0, Math.min(100, frame.level)) + '%';
+  if (stage) stage.classList.toggle('pouring', !!frame.pouring && elapsed < duration && !state.reduceMotion);
+  const level = overlay.querySelector('[data-replay-level]');
+  if (level) level.textContent = (elapsed >= duration ? view.data.finalLevel : frame.level).toFixed(1) + ' units';
+  const time = overlay.querySelector('[data-replay-time]');
+  if (time) time.textContent = (elapsed / 1000).toFixed(1) + ' / ' + (duration / 1000).toFixed(1) + 's';
+  const lastEvent = (view.data.events || []).filter((e) => e.t <= elapsed).at(-1);
+  const captions = { pourDown: 'Pour started', pourUp: 'Released', stop: 'Stopped',
+    ketchupGlug: 'Ketchup glug', butterSplash: 'Butterfingers splash',
+    shakyBurst: 'Shaky burst', spill: '💦 Spill!' };
+  const caption = overlay.querySelector('[data-replay-event]');
+  if (caption) caption.textContent = state.reduceMotion ? 'Reduced motion · final spill'
+    : lastEvent ? captions[lastEvent.type] || 'Water flowing' : 'Watch the water rise';
+}
 function howOverlay() {
   if (!state.howOpen) return '';
   return `<div class="overlay" id="how-overlay" role="dialog" aria-modal="true" aria-label="How to play"><div class="modal"><div class="row between"><h2>How to play</h2><button class="mini-btn" data-close-help aria-label="Close">✕</button></div>${howContent(state.howStep)}<div class="row between"><button class="btn btn-white btn-small" data-how-prev ${state.howStep === 0 ? 'disabled' : ''}>← Back</button><button class="btn btn-primary btn-small" ${state.howStep < 2 ? 'data-how-next' : 'data-close-help'}>${state.howStep < 2 ? 'Next →' : 'Got it ✓'}</button></div><p class="muted" style="font-size:.85rem;line-height:1.5;margin-top:18px">Game ends after 3, 5 or 7 spills. Nobody is eliminated. Highest score wins; ties break by correct guesses, then a sudden-death pour.</p></div></div>`;
