@@ -217,6 +217,7 @@ export class GameEngine {
       lastActivity: this.clock(),
       lastState: 0,
       reveal: null,
+      spillReplay: null,
       winner: null,
       duel: null,
     };
@@ -404,6 +405,9 @@ export class GameEngine {
       butterAt: 0,
       butterHappened: false,
       ketchupDelay: 1000 + this.random() * 1000,
+      replaySamples: [],
+      replayEvents: [],
+      ketchupGlugged: false,
     };
     room.reveal = null;
     if (jinxer && jinxer.id !== pourer.id) {
@@ -434,6 +438,7 @@ export class GameEngine {
       t.pourStartAt = now;
       t.pourEndAt = now + this.ms(POUR_MAX_MS);
       t.pouringSince = now;
+      this.recordReplayFrame(room, now);
     }
   }
   pressPour(room, down) {
@@ -446,6 +451,8 @@ export class GameEngine {
       t.pourEndAt = now + this.ms(t.jinx === 'eye' ? EYEDROPPER_MAX_MS : POUR_MAX_MS);
       t.pouringSince = now;
     }
+    if (down) this.recordReplayEvent(room, 'pourDown', now);
+    this.recordReplayFrame(room, now);
     if (t.jinx === 'heavy') t.events.push({ at: now + this.ms(600), down });
     else t.effectiveHeld = down;
     t.held = down;
@@ -459,6 +466,7 @@ export class GameEngine {
       this.autoMinimum(room);
       return;
     }
+    if (!disconnected) this.recordReplayEvent(room, 'pourUp', this.clock());
     if (t.jinx === 'opposite') {
       if (!disconnected) {
         t.held = false;
@@ -485,6 +493,7 @@ export class GameEngine {
       this.autoMinimum(room);
       return;
     }
+    this.recordReplayEvent(room, 'stop', this.clock());
     t.stopRequested = true;
     t.effectiveHeld = false;
     t.events = [];
@@ -505,8 +514,34 @@ export class GameEngine {
     const t = room.turn;
     if (!t || room.phase !== 'pour') return;
     t.started = true;
+    if (!t.pourStartAt) t.pourStartAt = this.clock();
+    this.recordReplayFrame(room, this.clock());
     this.addWater(room, 6);
     if (room.phase === 'pour') this.endPour(room);
+  }
+  // Replay data remains engine-private until reveal. Samples use virtual pour time,
+  // match the existing 20 Hz tick, and never exceed 400 entries per turn.
+  replayTime(turn, now = this.clock()) {
+    return Math.max(0, Math.round((now - turn.pourStartAt) / this.scale));
+  }
+  replayFlowing(turn) {
+    return !!(turn.dripping || (turn.jinx === 'opposite' ? !turn.effectiveHeld : turn.effectiveHeld));
+  }
+  recordReplayFrame(room, now = this.clock(), final = false) {
+    const t = room.turn;
+    if (!t?.started || !t.pourStartAt) return;
+    t.replaySamples ??= [];
+    const frame = { t: this.replayTime(t, now), level: round(room.cup), pouring: final ? false : this.replayFlowing(t) };
+    const frames = t.replaySamples;
+    if (frames.length && frames.at(-1).t === frame.t) frames[frames.length - 1] = frame;
+    else if (frames.length < 400) frames.push(frame);
+    else frames[frames.length - 1] = frame; // Keep the exact ending even at the cap.
+  }
+  recordReplayEvent(room, type, now = this.clock()) {
+    const t = room.turn;
+    if (!t?.started || !t.pourStartAt) return;
+    t.replayEvents ??= [];
+    if (t.replayEvents.length < 64) t.replayEvents.push({ t: this.replayTime(t, now), type });
   }
   addWater(room, amount) {
     if (!Number.isFinite(amount) || amount <= 0 || room.phase !== 'pour') return;
@@ -531,6 +566,8 @@ export class GameEngine {
     t.effectiveHeld = false;
     t.events = [];
     t.spilled = spill;
+    if (spill) this.recordReplayEvent(room, 'spill');
+    this.recordReplayFrame(room, this.clock(), true);
     // In a two-player face-off, the rival picked the handicap and already knows it.
     // Skip the detective phase entirely; scores come from pouring and sabotaging.
     if (t.headToHead) {
@@ -579,6 +616,16 @@ export class GameEngine {
       }
       room.lastPourer = t.pourerId;
     }
+    // Only retain the most recent spilled pour; normal pours are discarded.
+    if (t.spilled) room.spillReplay = {
+      samples: t.replaySamples || [],
+      events: t.replayEvents || [],
+      finalLevel: round(room.cup),
+      pourerId: t.pourerId,
+      jinx: t.jinx,
+    };
+    t.replaySamples = null;
+    t.replayEvents = null;
     room.reveal = {
       jinx: t.jinx,
       spilled: t.spilled,
@@ -671,6 +718,9 @@ export class GameEngine {
       butterAt: 0,
       butterHappened: true,
       ketchupDelay: 1500,
+      replaySamples: [],
+      replayEvents: [],
+      ketchupGlugged: false,
     };
     room.phase = 'pour';
     room.deadline = now + this.ms(10000);
@@ -735,6 +785,7 @@ export class GameEngine {
     room.turnNumber = 0;
     room.lastPourer = null;
     room.reveal = null;
+    room.spillReplay = null;
     room.winner = null;
     room.duel = null;
     room.deadline = 0;
@@ -801,6 +852,10 @@ export class GameEngine {
           }
           const active = t.dripping || (t.jinx === 'opposite' ? !t.effectiveHeld : t.effectiveHeld);
           if (active) {
+            if (t.jinx === 'ketchup' && !t.ketchupGlugged && elapsed >= t.ketchupDelay) {
+              t.ketchupGlugged = true;
+              this.recordReplayEvent(room, 'ketchupGlug', now);
+            }
             let rate = t.dripping ? POUR_RATE : this.waterRate(t, now);
             // The final mandatory six units always drip at normal speed.
             if (t.dripping) rate = POUR_RATE;
@@ -815,6 +870,7 @@ export class GameEngine {
               const bucket = Math.floor(elapsed / 1000);
               if (bucket > t.shakyAt) {
                 t.shakyAt = bucket;
+                this.recordReplayEvent(room, 'shakyBurst', now);
                 this.addWater(room, this.random() * 1.5);
               }
             }
@@ -829,6 +885,7 @@ export class GameEngine {
               elapsed >= t.butterAt / this.scale
             ) {
               t.butterHappened = true;
+              this.recordReplayEvent(room, 'butterSplash', now);
               this.addWater(room, 8);
             }
             if (room.phase !== 'pour') {
@@ -839,6 +896,7 @@ export class GameEngine {
           if (t.dripping && t.added >= 6 - 1e-6) this.endPour(room);
           else if (t.releaseRequested && !t.effectiveHeld && !t.events.length) this.beginDrip(room);
         }
+        if (room.phase === 'pour' && t.started) this.recordReplayFrame(room, now);
         changed.push(room.code);
       } else if (room.phase === 'guess' && now >= room.deadline) {
         this.revealTurn(room);
@@ -945,6 +1003,9 @@ export class GameEngine {
           : null,
       ranking: this.sorted(room).map((x) => x.id),
     };
+    // Even the pourer and jinxer never receive replay data until reveal begins.
+    if (room.phase === 'reveal' && room.reveal?.spilled && room.spillReplay)
+      result.replay = room.spillReplay;
     // Prevent vision-jinx players from reading accurate levels through client state.
     if (
       room.phase === 'pour' &&
