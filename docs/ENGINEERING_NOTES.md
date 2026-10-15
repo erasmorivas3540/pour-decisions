@@ -85,3 +85,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** Existing tests focused on individual room correctness rather than concurrent end-to-end workload and telemetry.
 - **Fix:** Added a standalone, zero-dependency `tests/load.mjs` runner, exposed by `npm run loadtest`. It uses a fresh ephemeral server, ticketed SSE clients, real HTTP actions, two engine bots per room, per-action matching SSE latency tracking, and Linux process high-water-mark memory sampling. Performance results are recorded in `docs/LOAD_TEST.md` only after executing the benchmark.
 - **How it is tested:** The GitHub Actions measurement run completed a one-room smoke game and 20/20 concurrent three-spill games with 0 reported errors. The normal `npm run check` suite passed 39 tests. Recorded measurements, date, hardware and exact command are preserved in the load-test report.
+
+## October 15, 2026 — Final README and test-report drift (Phase 6, task 11)
+
+- **Symptom:** After implementing stream tickets, bots, replays, and CI, README still described direct token authorization on the SSE GET URL and both README and `TEST_REPORT.md` claimed 28 tests.
+- **Root cause:** Feature and security changes landed after the Phase 1 documentation audit without updating the headline architecture and test numbers.
+- **Fix:** Added a source-grounded Mermaid diagram showing the ticket request and one-time stream, 50 ms authoritative tick, engine-owned bots, per-viewer state filtering, and reveal-only replay data; linked the engineering notes and measured load report. Reconciled the README and test report to the confirmed 39-test suite, without changing runtime logic.
+- **How it is tested:** Matched the documented routes and projection rules against `server.js` and `game.js`; verified the 39-test count and Prettier on both Node 20 and 22 in the completed Phase 5 CI run. Phase 6 reruns validate the final docs on the staging branch.
