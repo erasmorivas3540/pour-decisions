@@ -18,3 +18,19 @@ jobs:
         env:
           TEST_URL: https://pour-decisions-ozbh.onrender.com
         run: node tests/public-live-smoke.mjs
+      - name: Install ephemeral browser testing tools
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Exercise desktop and mobile Chromium against production
+        env:
+          TEST_URL: https://pour-decisions-ozbh.onrender.com
+        run: node tests/public-browser-smoke.mjs
+      - name: Save production browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pour-decisions-live-desktop-mobile
+          path: release-artifacts/*.png
+          if-no-files-found: warn
+          retention-days: 14
