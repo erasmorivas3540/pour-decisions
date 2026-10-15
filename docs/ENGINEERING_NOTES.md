@@ -64,3 +64,10 @@ For each fixed bug, record **Symptom / Root cause / Fix / How it is tested**.
 - **Root cause:** The 20 Hz physics tick only retained a short private level history for Lag Goggles; no replay record, limited event feed, or phase-gated playback existed.
 - **Fix:** Record bounded per-turn time/level/pouring samples at the existing tick cadence, plus pour inputs, glugs, splashes, bursts, and spill events. Keep at most 400 frames and 64 events per turn, retain only the most recent spill in each room, and project replay to client state only during that spill's reveal phase. The independent, accessible side-camera playback overlay supports 1×/2× while the game continues and shows the exact final level; reduced-motion mode shows the final frame.
 - **How it is tested:** `tests/replay.test.js` asserts privacy in jinx/pour/guess, availability at reveal, 400-sample cap, exact final level, recorded special events, rematch clearing, and client playback interpolation. The camera VM test isolates unrelated replay update work; run `npm run check` and `npx prettier --check .` under both Node.js 20 and 22 CI before merging.
+
+## October 15, 2026 — Engine-owned bot seats (Phase 5, task 9)
+
+- **Symptom:** Solo players could not start a multiplayer room without another human, and tests could not exercise simulated opponents.
+- **Root cause:** Only human players could occupy connected seats, choose jinxes, pour, guess, or acknowledge the guide.
+- **Fix:** Added three host-controlled bot seats for the lobby. Bots are visibly identified as 🤖, instantly ready during onboarding, choose random offered jinx cards, aim for an absolute 70–97 target adjusted for their known handicap, and guess correctly with 40% probability. They use existing validated game actions and run inside the server's 20 Hz tick without HTTP/SSE clients or runtime dependencies.
+- **How it is tested:** Tests cover host-only bot management, player caps, readiness, turn permissions, and completion of a 1-human + 2-bot game; full `npm run check` and Node 20/22 CI matrix must pass.
