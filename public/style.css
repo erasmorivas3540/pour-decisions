@@ -3753,11 +3753,30 @@ h3 {
   padding: 20px;
   box-shadow: 0 14px 0 #15233b56;
 }
-.replay-panel h2 { margin: 0 0 5px; }
-.replay-panel .replay-stage { margin-top: 14px; overflow: hidden; border-radius: 14px; }
-.replay-panel .replay-stage .cup-stage { margin: 0; }
-.replay-controls { margin-top: 12px; gap: 10px; flex-wrap: wrap; }
-.replay-note { font-size: 0.83rem; line-height: 1.4; margin-top: 14px; }
+.replay-panel h2 {
+  margin: 0 0 5px;
+}
+.replay-panel .replay-stage {
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.replay-panel .replay-stage .cup-stage {
+  margin: 0;
+}
+.replay-controls {
+  margin-top: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.replay-note {
+  font-size: 0.83rem;
+  line-height: 1.4;
+  margin-top: 14px;
+}
 .reduce-motion .replay-shade *,
 .reduce-motion .replay-shade *::before,
-.reduce-motion .replay-shade *::after { animation: none !important; transition: none !important; }
+.reduce-motion .replay-shade *::after {
+  animation: none !important;
+  transition: none !important;
+}

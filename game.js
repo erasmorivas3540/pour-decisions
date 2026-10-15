@@ -525,13 +525,19 @@ export class GameEngine {
     return Math.max(0, Math.round((now - turn.pourStartAt) / this.scale));
   }
   replayFlowing(turn) {
-    return !!(turn.dripping || (turn.jinx === 'opposite' ? !turn.effectiveHeld : turn.effectiveHeld));
+    return !!(
+      turn.dripping || (turn.jinx === 'opposite' ? !turn.effectiveHeld : turn.effectiveHeld)
+    );
   }
   recordReplayFrame(room, now = this.clock(), final = false) {
     const t = room.turn;
     if (!t?.started || !t.pourStartAt) return;
     t.replaySamples ??= [];
-    const frame = { t: this.replayTime(t, now), level: round(room.cup), pouring: final ? false : this.replayFlowing(t) };
+    const frame = {
+      t: this.replayTime(t, now),
+      level: round(room.cup),
+      pouring: final ? false : this.replayFlowing(t),
+    };
     const frames = t.replaySamples;
     if (frames.length && frames.at(-1).t === frame.t) frames[frames.length - 1] = frame;
     else if (frames.length < 400) frames.push(frame);
@@ -617,13 +623,14 @@ export class GameEngine {
       room.lastPourer = t.pourerId;
     }
     // Only retain the most recent spilled pour; normal pours are discarded.
-    if (t.spilled) room.spillReplay = {
-      samples: t.replaySamples || [],
-      events: t.replayEvents || [],
-      finalLevel: round(room.cup),
-      pourerId: t.pourerId,
-      jinx: t.jinx,
-    };
+    if (t.spilled)
+      room.spillReplay = {
+        samples: t.replaySamples || [],
+        events: t.replayEvents || [],
+        finalLevel: round(room.cup),
+        pourerId: t.pourerId,
+        jinx: t.jinx,
+      };
     t.replaySamples = null;
     t.replayEvents = null;
     room.reveal = {

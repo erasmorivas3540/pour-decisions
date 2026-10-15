@@ -13,7 +13,8 @@ function match() {
   const seats = [host, rival, third];
   for (const s of seats) engine.connection(s.code, s.id, s.token, 1);
   const room = engine.room(host.code);
-  const act = (seat, type, value = {}) => engine.action(seat.code, seat.id, seat.token, type, value);
+  const act = (seat, type, value = {}) =>
+    engine.action(seat.code, seat.id, seat.token, type, value);
   const advance = (ms) => {
     for (let elapsed = 0; elapsed < ms; elapsed += 50) {
       now += Math.min(50, ms - elapsed);
@@ -23,8 +24,25 @@ function match() {
   act(host, 'start');
   seats.forEach((s) => act(s, 'ready'));
   assert.equal(room.phase, 'pour');
-  return { engine, host, seats, room, act, advance, tick: () => { now += 50; engine.tick(); },
-    jump: (ms) => { now += ms; engine.tick(); }, stepTime: (ms) => { now += ms; } };
+  return {
+    engine,
+    host,
+    seats,
+    room,
+    act,
+    advance,
+    tick: () => {
+      now += 50;
+      engine.tick();
+    },
+    jump: (ms) => {
+      now += ms;
+      engine.tick();
+    },
+    stepTime: (ms) => {
+      now += ms;
+    },
+  };
 }
 
 test('spill replay is invisible to every viewer until reveal, including past spills', () => {
@@ -34,13 +52,26 @@ test('spill replay is invisible to every viewer until reveal, including past spi
   room.turn.jinx = 'fire';
   room.cup = 99;
   room.turn.startCup = 99;
-  for (const p of s.seats) assert.equal(Object.hasOwn(engine.state(room, room.players.find((x) => x.id === p.id)), 'replay'), false);
+  for (const p of s.seats)
+    assert.equal(
+      Object.hasOwn(
+        engine.state(
+          room,
+          room.players.find((x) => x.id === p.id),
+        ),
+        'replay',
+      ),
+      false,
+    );
   s.act(pourer, 'pourDown');
   s.advance(200);
   assert.equal(room.phase, 'guess', 'a spill from a nearly-full cup starts guessing');
   for (const p of room.players) {
     assert.equal(Object.hasOwn(engine.state(room, p), 'replay'), false);
-    assert.equal(engine.state(room, p).turn.jinx, p.id === room.turn.pourerId || p.id === room.turn.jinxerId ? 'fire' : null);
+    assert.equal(
+      engine.state(room, p).turn.jinx,
+      p.id === room.turn.pourerId || p.id === room.turn.jinxerId ? 'fire' : null,
+    );
   }
   s.advance(5200);
   assert.equal(room.phase, 'reveal');
@@ -61,7 +92,11 @@ test('spill replay is invisible to every viewer until reveal, including past spi
   assert.ok(room.spillReplay, 'only the last spill remains stored internally');
   for (const p of room.players) {
     const view = engine.state(room, p);
-    assert.equal(Object.hasOwn(view, 'replay'), false, 'old replays never leak to the next jinx phase');
+    assert.equal(
+      Object.hasOwn(view, 'replay'),
+      false,
+      'old replays never leak to the next jinx phase',
+    );
   }
   room.phase = 'gameover';
   s.act(s.host, 'rematch');
@@ -108,7 +143,10 @@ test('Ketchup, Butterfingers and Shaky bursts are captured as discrete events', 
     s.act(pourer, 'pourDown');
     if (jinx === 'shaky') s.jump(1200);
     else s.tick();
-    assert.ok(room.turn.replayEvents.some((x) => x.type === event), `${jinx} event recorded`);
+    assert.ok(
+      room.turn.replayEvents.some((x) => x.type === event),
+      `${jinx} event recorded`,
+    );
     s.act(pourer, 'pourUp');
     assert.ok(room.turn.replayEvents.some((x) => x.type === 'pourUp'));
   }
@@ -126,11 +164,14 @@ test('replay UI has a side-view player and exact final state with 1x/2x and redu
   const context = { Math };
   vm.createContext(context);
   vm.runInContext(app.slice(a, b) + '\nthis.at=replayFrameAt;', context);
-  const replay = { samples: [
-    { t: 0, level: 80, pouring: true },
-    { t: 50, level: 83, pouring: true },
-    { t: 100, level: 102.3, pouring: false },
-  ], finalLevel: 102.3 };
+  const replay = {
+    samples: [
+      { t: 0, level: 80, pouring: true },
+      { t: 50, level: 83, pouring: true },
+      { t: 100, level: 102.3, pouring: false },
+    ],
+    finalLevel: 102.3,
+  };
   assert.equal(context.at(replay, 25).level, 81.5);
   assert.equal(context.at(replay, 100).level, 102.3);
   assert.equal(context.at(replay, 999).pouring, false);
