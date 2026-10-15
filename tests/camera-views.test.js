@@ -5,7 +5,19 @@ import vm from 'node:vm';
 
 const source=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 const section=(start,end)=>{
-  const a=source.indexOf(start),b=source.indexOf(end,a+start.length);
+  // Identify function declarations, not their whitespace-sensitive formatting.
+  const name=(marker)=>{
+    const match=/function\\s+([A-Za-z_$][\\w$]*)\\s*\\(/.exec(marker);
+    assert.ok(match,`Invalid function marker: ${marker}`);
+    return match[1];
+  };
+  const functionStart=(marker,offset=0)=>{
+    const declaration=new RegExp(`\\bfunction\\s+${name(marker)}\\s*\\(`,'g');
+    declaration.lastIndex=offset;
+    return declaration.exec(source)?.index??-1;
+  };
+  const a=functionStart(start);
+  const b=functionStart(end,a+1);
   assert.ok(a>=0&&b>a,`Source functions ${start} / ${end} must be present`);
   return source.slice(a,b);
 };
