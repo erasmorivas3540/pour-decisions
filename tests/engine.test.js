@@ -482,7 +482,8 @@ test('Fisher–Yates: seeded 20,000 shuffles have near-uniform position frequenc
     shuffled.forEach((item, position) => counts[item][position]++);
   }
   assert.deepEqual(original, [0, 1, 2, 3], 'input array is not modified');
-  for (const row of counts) for (const count of row)
-    assert.ok(count >= 4600 && count <= 5400, `count ${count} must be 25% ±2pp`);
+  for (const row of counts)
+    for (const count of row)
+      assert.ok(count >= 4600 && count <= 5400, `count ${count} must be 25% ±2pp`);
   assert.equal(engine.sample(original, 2).length, 2);
 });

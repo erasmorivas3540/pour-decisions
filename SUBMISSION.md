@@ -26,4 +26,4 @@
 - [ ] Ask someone new to follow the instructions without your assistance.
 - [ ] Submit in Handshake's **Create a Multiplayer Game** mission by **October 30, 2026, 11:59 PM PT**.
 
-*Physical-device acceptance checks and Handshake submission remain external steps.*
+_Physical-device acceptance checks and Handshake submission remain external steps._

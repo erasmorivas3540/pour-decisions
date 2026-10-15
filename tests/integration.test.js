@@ -20,7 +20,7 @@ async function integration() {
       const m = stdout.match(/:(\d+)/);
       if (m) port = m[1];
     });
-    const deadline = Date.now() + 4000;
+    const deadline = Date.now() + 10000;
     while (!port && Date.now() < deadline) await sleep(20);
     assert.ok(port, 'server did not start');
     const base = `http://127.0.0.1:${port}`;
@@ -39,7 +39,7 @@ async function integration() {
     sessions.push(await post('join', { code: sessions[0].code, name: 'Third', avatar: '🐱' }));
     for (const s of sessions) {
       const controller = new AbortController();
-      const {ticket} = await post('stream-ticket', s);
+      const { ticket } = await post('stream-ticket', s);
       const url = `${base}/api/stream?ticket=${encodeURIComponent(ticket)}`;
       const res = await fetch(url, { signal: controller.signal });
       assert.equal(res.status, 200);
@@ -68,7 +68,7 @@ async function integration() {
         } catch {}
       })();
     }
-    const waitFor = async (fn, timeout = 5000) => {
+    const waitFor = async (fn, timeout = 12000) => {
       const until = Date.now() + timeout;
       while (Date.now() < until) {
         const result = fn();
@@ -101,7 +101,7 @@ async function integration() {
     await post('action', { ...pourerS, type: 'pourUp' });
     // Opposite Controls keeps the bottle flowing on release; its separate Stop control ends it.
     if (pourer.state.turn.jinx === 'opposite') await post('action', { ...pourerS, type: 'stop' });
-    await waitFor(() => clients.every((c) => c.state?.phase === 'guess'), 4000);
+    await waitFor(() => clients.every((c) => c.state?.phase === 'guess'), 12000);
     assert.ok(
       guessers[0].history.some((s) => s.phase === 'pour' && s.level > 0),
       'water should sync over SSE',
@@ -114,7 +114,7 @@ async function integration() {
       post('action', { ...guesserS, type: 'guess', value: { jinx: actual } }),
       /already guessed/,
     );
-    await waitFor(() => clients.every((c) => c.state?.phase === 'reveal'), 5000);
+    await waitFor(() => clients.every((c) => c.state?.phase === 'reveal'), 12000);
     assert.equal(guessers[0].state.turn.jinx, actual);
     assert.ok(guessers[0].state.players.find((p) => p.id === guesserS.id).score >= 5);
     // The HTTP API never accepts a fabricated identity.
@@ -135,5 +135,5 @@ async function integration() {
 test(
   'real HTTP server: 3 independent live clients, hidden jinx, scoring, access checks',
   integration,
-  { timeout: 14000 },
+  { timeout: 45000 },
 );

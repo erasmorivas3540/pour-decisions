@@ -21,12 +21,15 @@ test('overhead photographic sprites are served with the correct MIME and no nume
   const server = readFileSync(new URL('../server.js', import.meta.url), 'utf8');
   assert.match(
     css,
-    /\.sprite-photoreal\.pouring \.sprite-animation\{background-image:url\('\/assets\/overhead-water-sprites-16.webp'\)/,
+    /\.sprite-photoreal\.pouring\s+\.sprite-animation\s*\{\s*background-image:\s*url\('\/assets\/overhead-water-sprites-16\.webp'\)/,
   );
-  assert.match(css, /\.sprite-photoreal \.sprite-animation\{[^}]*overhead-water-settled.webp/);
+  assert.match(
+    css,
+    /\.sprite-photoreal\s+\.sprite-animation\s*\{[^}]*overhead-water-settled\.webp/,
+  );
   assert.match(app, /data-pour-sprite/);
   assert.match(app, /data-pour-next/);
-  assert.match(css, /background-size:400% 400%/);
+  assert.match(css, /background-size:\s*400%\s+400%/);
   assert.doesNotMatch(app, /Added \$\{Math\.round\(t\.added\)\} \/ 6 minimum/);
   assert.doesNotMatch(app, /class="glass-scale"/);
   assert.match(server, /['\"]\.webp['\"]\s*:\s*['\"]image\/webp['\"]/);
