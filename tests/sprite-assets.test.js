@@ -21,13 +21,13 @@ test('overhead photographic sprites are served with the correct MIME and no nume
  assert.match(css,/background-size:400% 400%/);
  assert.doesNotMatch(app,/Added \$\{Math\.round\(t\.added\)\} \/ 6 minimum/);
  assert.doesNotMatch(app,/class="glass-scale"/);
- assert.match(server,/'\.webp':'image\/webp'/);
+ assert.match(server,/['\"]\.webp['\"]\s*:\s*['\"]image\/webp['\"]/);
 });
 
 test('the 16-frame atlas has an actual 4x4 WebP grid rather than an eight-frame replay',()=>{
  const bytes=readFileSync(new URL('assets/overhead-water-sprites-16.webp',root));
  assert.ok(bytes.length>100000,'a real photographic grid is bundled');
  const app=readFileSync(new URL('app.js',root),'utf8');
- assert.match(app,/const last=flowing\?14:7/);
+ assert.match(app,/\bconst\s+last\s*=\s*flowing\s*\?\s*14\s*:\s*7\b/);
  assert.match(app,/spriteBlendFor/);
 });
